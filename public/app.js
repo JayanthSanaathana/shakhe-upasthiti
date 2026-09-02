@@ -1432,7 +1432,7 @@ function showSavedUpasthiti(entry, opts) {
 
   document.getElementById('upasthiti-saved-fields-1').innerHTML = viewBlock('ಉಪಸ್ಥಿತಿ/Upasthiti', counts);
   document.getElementById('upasthiti-saved-fields-2').innerHTML =
-    `<fieldset class="stana-block"><legend>ಶಾಖೆಯಲ್ಲಿ ಬಡಿದ ಅಷ್ಟಬಿಂದು/Ashtabindu done in shakhe</legend>` +
+    `<fieldset class="stana-block"><legend>ಶಾಖೆಯಲ್ಲಿ ನಡೆದ ಅಷ್ಟಬಿಂದು/Ashtabindu done in shakhe</legend>` +
     savedProgramFold(
       'ಇಂದು ನಡೆದ ಬೌದ್ಧಿಕ ಕಾರ್ಯಕ್ರಮ/Indu Nadeda Boudhik Karyakrama',
       entry.boudhik,
