@@ -9,7 +9,7 @@ const placedEntitySchema = new mongoose.Schema(
 );
 
 const TIMING = ['prabhat', 'sayam', 'ratri'];
-const SHAKHE_TYPE = ['balaka', 'Taruna-Vidyarthi', 'Taruna-Udyogi', 'Samyuktha'];
+const SHAKHE_TYPE = ['balaka', 'Taruna-Vidyarthi', 'Taruna-Udyogi', 'Samyuktha', 'Proudha'];
 
 const shakheSchema = new mongoose.Schema({
   vibhag: { type: placedEntitySchema, required: true },

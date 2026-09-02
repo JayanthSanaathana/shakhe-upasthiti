@@ -10,8 +10,15 @@ const shakheUpasthitiSchema = new mongoose.Schema({
   pravasiPhone: { type: String, trim: true, default: null, maxlength: 15 },
   pravasiName: { type: String, trim: true, default: null, maxlength: 80 },
   pravasiPersonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Person', default: null },
-  samparkitaManegalu: { type: Number, required: true, min: 0, max: 99999 },
-  samparkitaVyaktigalu: { type: Number, required: true, min: 0, max: 99999 },
+  pravasis: [
+    {
+      personId: { type: mongoose.Schema.Types.ObjectId, ref: 'Person', default: null },
+      name: { type: String, trim: true, default: null, maxlength: 80 },
+      phone: { type: String, trim: true, default: null, maxlength: 15 },
+    },
+  ],
+  samparkitaManegalu: { type: Number, default: null, min: 0, max: 99999 },
+  samparkitaVyaktigalu: { type: Number, default: null, min: 0, max: 99999 },
   boudhik: { type: [String], default: [] },
   sannaKatheText: { type: String, trim: true, default: null, maxlength: 200 },
   deerghaKatheText: { type: String, trim: true, default: null, maxlength: 200 },
