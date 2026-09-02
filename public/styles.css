@@ -585,6 +585,7 @@ fieldset.choice-set.is-invalid {
   align-items: flex-start;
   gap: 0.28rem;
   width: 100%;
+  height: 100%;
   min-width: 0;
   margin: 0;
   padding: 0.5rem 0.5rem 0.55rem;
@@ -593,6 +594,13 @@ fieldset.choice-set.is-invalid {
   background: var(--bg);
   line-height: 1.25;
   overflow: visible;
+}
+
+.check-grid label.choice input {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
 }
 
 .check-grid label.choice .check-label {
@@ -654,14 +662,9 @@ fieldset.choice-set.is-invalid {
 }
 
 .program-fold .check-grid {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 0 0.65rem 0.75rem;
   margin: 0;
-}
-
-.program-fold .check-grid label.choice {
-  flex-direction: row;
-  align-items: flex-start;
 }
 
 .program-fold .field,
