@@ -2,6 +2,7 @@
 
 **Date:** 2026-09-02  
 **Continue here:** `/Users/jayanth/Documents/shakhe-upasthiti`  
+**GitHub:** https://github.com/JayanthSanaathana/shakhe-upasthiti  
 **Sibling app (Utsava):** `/Users/jayanth/Documents/raksha-bandhan-utsava`  
 **Grok workspace often opens Utsava**, but almost all current work is in the sibling folder. Do not add shakhe features inside Utsava.
 
@@ -21,7 +22,7 @@ npm run dev
 - Same `MONGO_URI` as Utsava. Atlas cluster rss `vxrxuqt`.
 - If Mongo TLS / `alert 80`: current public IP is not allowlisted (example seen: `104.28.220.169` Cloudflare).
 - Cache-bust: `public/index.html` loads `/app.js?v=20260902j`. **Bump this** after every `public/app.js` or `styles.css` change.
-- `shakhe-upasthiti` has **no git repo** yet. Utsava git is unrelated.
+- Git: `master` tracking `origin` at https://github.com/JayanthSanaathana/shakhe-upasthiti (public). `.env` is gitignored.
 
 ---
 
