@@ -1057,7 +1057,8 @@ function weekdayLabel(iso) {
   if (!m) return '';
   const d = new Date(`${m[1]}-${m[2]}-${m[3]}T12:00:00+05:30`);
   if (Number.isNaN(d.getTime())) return '';
-  return WEEKDAY_LABEL[d.getDay()] || '';
+  const day = WEEKDAY_LABEL[d.getDay()] || '';
+  return day ? `ದಿನ/Day ${day}` : '';
 }
 
 function programCheckHtml(item, picked, disabled) {
@@ -1548,7 +1549,7 @@ function showSavedUpasthiti(entry, opts) {
     (entry.sannaKatheText ? kv('ಸಣ್ಣ ಕಥೆ/Sanna Kathe', entry.sannaKatheText) : '') +
     (entry.deerghaKatheText ? kv('ದೀರ್ಘ ಕಥೆ/Deergha Kathe', entry.deerghaKatheText) : '') +
     (personSnapLine(entry.boudhikPerson)
-      ? kv('ಬೌದ್ಧಿಕ್ ತೆಗೆದುಕೊಂಡವರು/Boudhik tegadukondavaru', personCell(entry.boudhikPerson.name, entry.boudhikPerson.phone))
+      ? kv('ಬೌದ್ಧಿಕ್ ತೆಗೆದುಕೊಂಡವರು/Boudhik taken by', personCell(entry.boudhikPerson.name, entry.boudhikPerson.phone))
       : '') +
     (personSnapLine(entry.charchePerson)
       ? kv('ಚರ್ಚೆ/Charche', personCell(entry.charchePerson.name, entry.charchePerson.phone))
