@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="kn">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <title>ಶಾಖೆ ಉಪಸ್ಥಿತಿ/Shakhe Upasthiti</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="/styles.css?v=20260902c">
+</head>
+
+<body>
+<div class="app">
+  <main class="app-stage">
+  <section id="home-view" class="card dash-card">
+    <div class="card-brand">
+      <p class="brand page-title">
+        <span class="title-kn">ಶಾಖೆ ಉಪಸ್ಥಿತಿ</span>
+        <span class="title-en">Shakhe Upasthiti</span>
+      </p>
+      <p id="nagara-home-place" class="place-line nagara-only hidden"></p>
+    </div>
+    <div class="action-grid" id="guest-actions">
+      <button type="button" class="action" id="open-nagara-login-btn">
+        <span class="action-kn">ನಗರ ಲಾಗಿನ್</span>
+        <span class="action-en">Nagara login</span>
+      </button>
+      <button type="button" class="action" id="open-upasthiti-btn">
+        <span class="action-kn">ಉಪಸ್ಥಿತಿ</span>
+        <span class="action-en">Upasthiti</span>
+      </button>
+    </div>
+    <div class="action-grid nagara-only hidden" id="nagara-actions">
+      <button type="button" class="action" id="open-form-btn">
+        <span class="action-kn">ಶಾಖೆ ರಚಿಸಿ</span>
+        <span class="action-en">Create Shakhe</span>
+      </button>
+      <button type="button" class="action" id="open-list-btn">
+        <span class="action-kn">ಶಾಖೆಗಳು</span>
+        <span class="action-en">Shakhes</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="varadi-gate-view" class="card hidden">
+    <button type="button" class="back-link" id="varadi-gate-back">&larr; ಹಿಂದೆ/Back</button>
+    <div class="card-brand">
+      <p class="brand page-title">
+        <span class="title-kn">ಶಾಖೆ ಉಪಸ್ಥಿತಿ</span>
+        <span class="title-en">Shakhe Upasthiti</span>
+      </p>
+    </div>
+    <h1 id="varadi-gate-title" class="page-title">
+      <span class="title-kn">ನಗರ ಲಾಗಿನ್</span>
+      <span class="title-en">Nagara login</span>
+    </h1>
+    <form id="varadi-gate-form">
+      <p id="varadi-gate-error" class="error hidden"></p>
+      <div class="field">
+        <label for="varadi-email">ಇಮೇಲ್ ವಿಳಾಸ/Email address</label>
+        <input type="email" id="varadi-email" maxlength="120" autocomplete="username"
+          placeholder="entity@sgpu.com" aria-label="ಇಮೇಲ್ ವಿಳಾಸ/Email address" required>
+      </div>
+      <div class="field">
+        <label for="varadi-password">ಗುಪ್ತಪದ/Password</label>
+        <input type="password" id="varadi-password" maxlength="200" autocomplete="current-password"
+          placeholder="password" aria-label="ಗುಪ್ತಪದ/Password" required>
+      </div>
+      <button type="submit">ಸೈನ್ ಇನ್/Sign in</button>
+    </form>
+  </section>
+
+  <section id="varadi-choice-view" class="card hidden">
+    <button type="button" class="back-link" id="varadi-choice-back">&larr; ಹಿಂದೆ/Back</button>
+    <div class="card-brand">
+      <p class="brand page-title">
+        <span class="title-kn">ಶಾಖೆ ಉಪಸ್ಥಿತಿ</span>
+        <span class="title-en">Shakhe Upasthiti</span>
+      </p>
+    </div>
+    <h1 class="page-title">
+      <span class="title-kn">ನಗರ ಆಯ್ಕೆ</span>
+      <span class="title-en">Select Nagara</span>
+    </h1>
+    <p id="varadi-choice-error" class="error hidden"></p>
+    <div id="varadi-choice-list" class="action-grid"></div>
+  </section>
+
+  <section id="form-view" class="card wide hidden">
+    <div id="form-loading" class="form-loading hidden" aria-live="polite">
+      <p>ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</p>
+    </div>
+    <button type="button" class="back-link" id="form-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1 id="form-title">ಶಾಖೆ ರಚಿಸಿ/Create Shakhe</h1>
+
+    <div id="success-panel" class="credentials hidden">
+      <p><strong>ಶಾಖೆ ರಚಿಸಲಾಗಿದೆ/Shakhe created</strong></p>
+      <button type="button" class="secondary" id="success-done">ಆಯಿತು/Done</button>
+    </div>
+
+    <form id="shakhe-form">
+      <p id="form-error" class="error hidden"></p>
+
+      <div class="field">
+        <label>ವಿಭಾಗ/Vibhag</label>
+        <p class="username" id="locked-vibhag">—</p>
+      </div>
+      <div class="field">
+        <label>ಜಿಲ್ಲಾ/ಭಾಗ/Bhag</label>
+        <p class="username" id="locked-bhag">—</p>
+      </div>
+      <div class="field">
+        <label>ತಾಲ್ಲೂಕು/ನಗರ/Nagara</label>
+        <p class="username" id="locked-nagar">—</p>
+      </div>
+      <div class="field">
+        <label for="shakhe-vasati">ವಸತಿ/Vasati</label>
+        <select id="shakhe-vasati" data-shakhe-sthara="Vasati" required>
+          <option value="">ಆಯ್ಕೆಮಾಡಿ/Select</option>
+        </select>
+        <p class="field-error" data-error-for="shakhe-vasati"></p>
+      </div>
+      <div class="field">
+        <label for="shakhe-upavasati">ಉಪವಸತಿ/Upavasati</label>
+        <select id="shakhe-upavasati" data-shakhe-sthara="Upavasati" required>
+          <option value="">ಮೊದಲು ವಸತಿ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first</option>
+        </select>
+        <p class="field-error" data-error-for="shakhe-upavasati"></p>
+      </div>
+      <div class="field">
+        <label for="shakhe-name">ಶಾಖೆ ಹೆಸರು/Shakhe name</label>
+        <input type="text" id="shakhe-name" maxlength="40" required>
+        <p class="field-error" data-error-for="shakhe-name"></p>
+      </div>
+      <div class="field">
+        <label for="shakhe-timing">ಸಮಯ ವಿಭಾಗ/Timing</label>
+        <select id="shakhe-timing" required>
+          <option value="">ಆಯ್ಕೆಮಾಡಿ/Select</option>
+          <option value="prabhat">ಪ್ರಭಾತ/Prabhat</option>
+          <option value="sayam">ಸಾಯಂ/Sayam</option>
+          <option value="ratri">ರಾತ್ರಿ/Ratri</option>
+        </select>
+        <p class="field-error" data-error-for="shakhe-timing"></p>
+      </div>
+      <div class="field">
+        <label for="shakhe-time">ಸಮಯ/Time</label>
+        <input type="time" id="shakhe-time" required>
+        <p class="field-error" data-error-for="shakhe-time"></p>
+      </div>
+      <div class="field">
+        <label for="shakhe-type">ಶಾಖೆ ಪ್ರಕಾರ/Shakhe type</label>
+        <select id="shakhe-type" required>
+          <option value="">ಆಯ್ಕೆಮಾಡಿ/Select</option>
+          <option value="balaka">ಬಾಲಕ/Balaka</option>
+          <option value="Taruna-Vidyarthi">ತರುಣ-ವಿದ್ಯಾರ್ಥಿ/Taruna-Vidyarthi</option>
+          <option value="Taruna-Udyogi">ತರುಣ-ಉದ್ಯೋಗಿ/Taruna-Udyogi</option>
+          <option value="Samyuktha">ಸಂಯುಕ್ತ/Samyuktha</option>
+        </select>
+        <p class="field-error" data-error-for="shakhe-type"></p>
+      </div>
+      <div class="office-bearer" id="mukhashikshak-block">
+        <label>ಮುಖಶಿಕ್ಷಕ/Mukhashikshak</label>
+        <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
+        <ul class="ob-results"></ul>
+        <div class="ob-selected hidden">
+          <span class="ob-selected-text"></span>
+          <button type="button" class="ob-clear">ಬದಲಾಯಿಸಿ/Change</button>
+        </div>
+        <p class="field-error" data-error-for="mukhashikshak-phone"></p>
+      </div>
+      <div class="office-bearer" id="karyavaha-block">
+        <label>ಕಾರ್ಯವಾಹ/Karyavaha <span class="optional">(ಐಚ್ಛಿಕ/optional)</span></label>
+        <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
+        <ul class="ob-results"></ul>
+        <div class="ob-selected hidden">
+          <span class="ob-selected-text"></span>
+          <button type="button" class="ob-clear">ಬದಲಾಯಿಸಿ/Change</button>
+        </div>
+        <p class="field-error" data-error-for="karyavaha-phone"></p>
+      </div>
+      <div class="office-bearer" id="palaka-block">
+        <label>ಶಾಖಾ ಪಾಲಕ/Shakha palaka <span class="optional">(ಐಚ್ಛಿಕ/optional)</span></label>
+        <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
+        <ul class="ob-results"></ul>
+        <div class="ob-selected hidden">
+          <span class="ob-selected-text"></span>
+          <button type="button" class="ob-clear">ಬದಲಾಯಿಸಿ/Change</button>
+        </div>
+        <p class="field-error" data-error-for="palaka-phone"></p>
+      </div>
+      <button type="submit" id="shakhe-submit">ಸಲ್ಲಿಸಿ/Submit</button>
+    </form>
+
+    <div id="phone-exists" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="phone-exists-title">
+      <div class="modal-backdrop" id="phone-exists-dismiss"></div>
+      <div class="modal-box warn-box pramukh-exists-box">
+        <button type="button" id="phone-exists-close" class="modal-x" aria-label="Close">&times;</button>
+        <p id="phone-exists-title">ಈ ದೂರವಾಣಿಗೆ ಶಾಖೆ ಈಗಾಗಲೇ ಇದೆ</p>
+        <p class="username">A shakhe already exists for this phone number</p>
+        <div id="phone-exists-details"></div>
+      </div>
+    </div>
+
+    <div id="upavasati-exists" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="upavasati-exists-title">
+      <div class="modal-backdrop" id="upavasati-exists-dismiss"></div>
+      <div class="modal-box warn-box">
+        <p id="upavasati-exists-title">ಈ ಉಪವಸತಿಯಲ್ಲಿ ಶಾಖೆ ಈಗಾಗಲೇ ರಚಿಸಲಾಗಿದೆ</p>
+        <p class="username">A shakhe is already created in this upavasati</p>
+        <div id="upavasati-exists-details"></div>
+        <button type="button" id="upavasati-exists-close">ಮುಚ್ಚಿ/Close</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="list-view" class="card wide table-card hidden">
+    <button type="button" class="back-link" id="list-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1>ಶಾಖೆಗಳು/Shakhes</h1>
+    <p id="list-error" class="error hidden"></p>
+    <div id="list-loading" class="report-loading hidden">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
+    <div class="table-wrap" id="list-body"></div>
+  </section>
+
+  <section id="view-shakhe-view" class="card wide hidden">
+    <button type="button" class="back-link" id="view-shakhe-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1>ಶಾಖೆ ಮಾಹಿತಿ/Shakhe details</h1>
+    <p id="view-shakhe-error" class="error hidden"></p>
+    <div id="view-shakhe-fields"></div>
+    <div id="view-shakhe-place" class="hidden">
+      <div id="view-stana-fields"></div>
+      <div class="kv">
+        <dt>ಸ್ಥಳ/Location</dt>
+      </div>
+      <div id="view-map-wrap">
+        <div id="view-map"></div>
+        <p id="view-coords" class="username"></p>
+      </div>
+    </div>
+    <p id="view-shakhe-pending" class="username hidden">ಸ್ಥಾನ ಮತ್ತು ಸ್ಥಳ ಇನ್ನೂ ಸೇರಿಸಿಲ್ಲ/Sthana and location are not added yet.</p>
+  </section>
+
+  <section id="lookup-view" class="card hidden">
+    <button type="button" class="back-link" id="lookup-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1>ಉಪಸ್ಥಿತಿ/Upasthiti</h1>
+    <p class="username">ಮುಖಶಿಕ್ಷಕ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhashikshak phone number</p>
+    <form id="lookup-form">
+      <p id="lookup-error" class="error hidden"></p>
+      <div class="field">
+        <input type="text" id="lookup-phone" maxlength="10" inputmode="numeric"
+          placeholder="ಫೋನ್ ಸಂಖ್ಯೆ ಟೈಪ್ ಮಾಡಿ/Type phone number" autocomplete="off" required
+          aria-label="ಮುಖಶಿಕ್ಷಕ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhashikshak phone number">
+      </div>
+      <button type="submit">ಶಾಖೆ ಹುಡುಕಿ/Find shakhe</button>
+    </form>
+    <ul id="lookup-results" class="ob-results"></ul>
+  </section>
+
+  <section id="setup-view" class="card wide hidden">
+    <button type="button" class="back-link" id="setup-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1>ಶಾಖೆ ವಿವರ/Shakhe details</h1>
+    <p id="setup-linked" class="credentials"></p>
+    <div id="setup-details"></div>
+    <form id="setup-form">
+      <p id="setup-error" class="error hidden"></p>
+      <fieldset class="stana-block">
+        <legend>ಸ್ಥಾನ/Sthana</legend>
+        <div class="field">
+          <label for="setup-stana-name">ಸ್ಥಾನದ ಹೆಸರು/Sthana name</label>
+          <input type="text" id="setup-stana-name" minlength="5" maxlength="15" required>
+          <p class="field-error" data-error-for="setup-stana-name"></p>
+        </div>
+        <div class="field">
+          <label for="setup-address">ಸ್ಥಳ/Location</label>
+          <input type="text" id="setup-address" maxlength="80" placeholder="ವಿಳಾಸ ಟೈಪ್ ಮಾಡಿ/Type part of the address"
+            autocomplete="off">
+          <ul id="setup-address-results" class="ob-results"></ul>
+          <input type="hidden" id="setup-lat">
+          <input type="hidden" id="setup-lng">
+          <div id="utsava-map-wrap">
+            <div id="utsava-map"></div>
+            <p id="setup-coords" class="username">ವಿಳಾಸ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಪಿನ್ ಎಳೆಯಿರಿ, ನಂತರ ಖಚಿತಪಡಿಸಿ/Type an address or drag the pin, then confirm.</p>
+          </div>
+          <button type="button" id="confirm-location">ಸ್ಥಳ ಖಚಿತಪಡಿಸಿ/Confirm location</button>
+          <button type="button" id="edit-location" class="secondary hidden">ಸ್ಥಳ ಬದಲಾಯಿಸಿ/Edit location</button>
+          <p id="location-locked" class="username hidden">ಸ್ಥಳ ಹಾಕಲಾಗಿದೆ. ಬದಲಾಯಿಸಬೇಕಾದರೆ ಎಡಿಟ್ ಮಾಡಿ/Location is set. Edit if you need to change it.</p>
+          <p class="field-error" data-error-for="setup-location"></p>
+        </div>
+      </fieldset>
+      <button type="submit" id="setup-submit">ಉಳಿಸಿ/Save</button>
+    </form>
+  </section>
+
+  <section id="upasthiti-view" class="card wide hidden">
+    <button type="button" class="back-link" id="upasthiti-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1 id="upasthiti-heading">ಇಂದಿನ ಶಾಖಾ ಉಪಸ್ಥಿತಿ/Indina Shakha Upasthiti</h1>
+    <p id="upasthiti-path" class="username"></p>
+    <h2 id="upasthiti-linked" class="shakhe-head"></h2>
+    <div class="field" id="upasthiti-date-picker-wrap">
+      <label for="upasthiti-date">ದಿನಾಂಕ/Date</label>
+      <input type="date" id="upasthiti-date" lang="en-GB">
+    </div>
+    <p id="upasthiti-date-bold" class="shakhe-date-bold"></p>
+
+    <div id="upasthiti-saved-view" class="hidden">
+      <div id="saved-step-1" class="form-step">
+        <div id="upasthiti-saved-fields-1"></div>
+      </div>
+      <div id="saved-step-2" class="form-step hidden">
+        <div id="upasthiti-saved-fields-2"></div>
+      </div>
+      <div class="step-nav">
+        <button type="button" id="saved-step-next">ಮುಂದೆ/Next</button>
+        <button type="button" id="upasthiti-edit" class="secondary hidden">ತಿದ್ದುಪಡಿ/Edit</button>
+        <button type="button" id="saved-step-back" class="secondary hidden">ಹಿಂದೆ/Back</button>
+      </div>
+    </div>
+
+    <div id="upasthiti-success" class="credentials hidden">
+      <p><strong>ಉಪಸ್ಥಿತಿ ಸಲ್ಲಿಸಲಾಗಿದೆ/Upasthiti submitted</strong></p>
+      <p id="upasthiti-success-detail" class="username"></p>
+      <button type="button" class="secondary" id="upasthiti-done">ಆಯಿತು/Done</button>
+    </div>
+
+    <form id="upasthiti-form">
+      <p id="upasthiti-error" class="error hidden"></p>
+
+      <div id="upasthiti-step-1" class="form-step">
+      <div class="count-row">
+        <div class="field">
+          <label for="count-taruna">ತರುಣ/Taruna</label>
+          <input type="text" id="count-taruna" inputmode="numeric" maxlength="5" required>
+        </div>
+        <div class="field">
+          <label for="count-balaka">ಬಾಲಕ/Balaka</label>
+          <input type="text" id="count-balaka" inputmode="numeric" maxlength="5" required>
+        </div>
+        <div class="field">
+          <label for="count-shishu">ಶಿಶು/Shishu</label>
+          <input type="text" id="count-shishu" inputmode="numeric" maxlength="5" required>
+        </div>
+        <div class="field">
+          <label for="count-mata">ಮಾತಾ-ಭಗಿನಿ/Mata Bhagini</label>
+          <input type="text" id="count-mata" inputmode="numeric" maxlength="5" required>
+        </div>
+      </div>
+      <p class="total-line">ಒಟ್ಟು/Total <strong id="count-total">0</strong></p>
+
+      <div class="office-bearer" id="pravasi-block">
+        <label>ಉಪಸ್ಥಿತ ಪ್ರವಾಸಿ ಕಾರ್ಯಕರ್ತರು/Upasthitha pravasi karyakartharu
+          <span class="optional">(ಐಚ್ಛಿಕ/optional)</span></label>
+        <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
+        <ul class="ob-results"></ul>
+        <div class="ob-selected hidden">
+          <span class="ob-selected-text"></span>
+          <button type="button" class="ob-clear">ಬದಲಾಯಿಸಿ/Change</button>
+        </div>
+        <p class="field-error" data-error-for="pravasi-phone"></p>
+      </div>
+      <div class="count-row">
+        <div class="field">
+          <label for="count-manegalu">ಒಟ್ಟು ಸಂಪರ್ಕಿತ ಮನೆಗಳು/Ottu samparkitha manegalu</label>
+          <input type="text" id="count-manegalu" inputmode="numeric" maxlength="5" required>
+        </div>
+        <div class="field">
+          <label for="count-vyaktigalu">ಒಟ್ಟು ಸಂಪರ್ಕಿತ ವ್ಯಕ್ತಿಗಳು/Ottu samparkita vyaktigalu</label>
+          <input type="text" id="count-vyaktigalu" inputmode="numeric" maxlength="5" required>
+        </div>
+      </div>
+      </div>
+
+      <div id="upasthiti-step-2" class="form-step hidden">
+      <fieldset class="stana-block">
+        <legend>ಶಾಖೆಯಲ್ಲಿ ಬಡಿದ ಅಷ್ಟಬಿಂದು/Ashtabindu done in shakhe</legend>
+
+        <details class="program-fold">
+          <summary>ಇಂದು ನಡೆದ ಬೌದ್ಧಿಕ ಕಾರ್ಯಕ್ರಮ/Indu Nadeda Boudhik Karyakrama</summary>
+          <div id="boudhik-checks" class="check-grid"></div>
+          <div class="field hidden" id="sanna-kathe-wrap">
+            <label for="sanna-kathe-text">ಸಣ್ಣ ಕಥೆ/Sanna Kathe</label>
+            <input type="text" id="sanna-kathe-text" maxlength="200" placeholder="ಕಥೆ ಬರೆಯಿರಿ/Type the story">
+          </div>
+          <div class="field hidden" id="deergha-kathe-wrap">
+            <label for="deergha-kathe-text">ದೀರ್ಘ ಕಥೆ/Deergha Kathe</label>
+            <input type="text" id="deergha-kathe-text" maxlength="200" placeholder="ಕಥೆ ಬರೆಯಿರಿ/Type the story">
+          </div>
+          <div class="office-bearer hidden" id="boudhik-speaker-block">
+            <label>ಬೌದ್ಧಿಕ್/Boudhik</label>
+            <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
+            <ul class="ob-results"></ul>
+            <div class="ob-selected hidden">
+              <span class="ob-selected-text"></span>
+              <button type="button" class="ob-clear">ಬದಲಾಯಿಸಿ/Change</button>
+            </div>
+          </div>
+          <div class="office-bearer hidden" id="charche-speaker-block">
+            <label>ಚರ್ಚೆ/Charche</label>
+            <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
+            <ul class="ob-results"></ul>
+            <div class="ob-selected hidden">
+              <span class="ob-selected-text"></span>
+              <button type="button" class="ob-clear">ಬದಲಾಯಿಸಿ/Change</button>
+            </div>
+          </div>
+          <div class="field hidden" id="boudhik-itara-wrap">
+            <label for="boudhik-itara">ಇತರ/Itara</label>
+            <input type="text" id="boudhik-itara" maxlength="80">
+          </div>
+        </details>
+
+        <details class="program-fold">
+          <summary>ಇಂದು ನಡೆದ ಶಾರೀರಿಕ ಕಾರ್ಯಕ್ರಮ/Indu Nadeda Sharirik Karyakrama</summary>
+          <div id="sharirik-checks" class="check-grid"></div>
+          <div class="field hidden" id="sharirik-itara-wrap">
+            <label for="sharirik-itara">ಇತರ/Itara</label>
+            <input type="text" id="sharirik-itara" maxlength="200" placeholder="ನಡೆದುದನ್ನು ಬರೆಯಿರಿ/Type what was done">
+          </div>
+        </details>
+
+        <div class="field">
+          <label for="seva-text">ಇಂದು ನಡೆದ ಸೇವಾ ಕಾರ್ಯಕ್ರಮ/Indu Nadeda Seva Karyakrama</label>
+          <input type="text" id="seva-text" maxlength="200" placeholder="ನಡೆದ ಸೇವೆ ಬರೆಯಿರಿ/Type the seva done">
+        </div>
+      </fieldset>
+      </div>
+
+      <div class="step-nav">
+        <button type="button" id="upasthiti-step-next">ಮುಂದೆ/Next</button>
+        <button type="submit" id="upasthiti-submit" class="hidden">ಸಲ್ಲಿಸಿ/Submit</button>
+        <button type="button" id="upasthiti-step-back" class="secondary hidden">ಹಿಂದೆ/Back</button>
+      </div>
+    </form>
+  </section>
+  </main>
+  <footer class="app-foot nagara-only hidden">
+    <button type="button" id="nagara-logout" class="mast-out">ನಿರ್ಗಮಿಸಿ/Sign out</button>
+  </footer>
+</div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/app.js?v=20260902j"></script>
+</body>
+</html>
