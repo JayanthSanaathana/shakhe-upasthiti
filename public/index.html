@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=20260902r">
+  <link rel="stylesheet" href="/styles.css?v=20260903h">
 </head>
 
 <body>
@@ -27,13 +27,21 @@
       <p id="nagara-home-place" class="place-line nagara-only hidden"></p>
     </div>
     <div class="action-grid" id="guest-actions">
-      <button type="button" class="action" id="open-nagara-login-btn">
+      <button type="button" class="action" id="open-create-shakhe-btn">
         <span class="action-kn">ಶಾಖೆ ರಚಿಸಿ</span>
         <span class="action-en">Create Shakha</span>
       </button>
       <button type="button" class="action" id="open-upasthiti-btn">
         <span class="action-kn">ಉಪಸ್ಥಿತಿ</span>
         <span class="action-en">Upasthiti</span>
+      </button>
+      <button type="button" class="action" id="open-varadi-btn">
+        <span class="action-kn">ಶಾಖೆ ವರದಿ</span>
+        <span class="action-en">Shakhe Varadi</span>
+      </button>
+      <button type="button" class="action" id="open-nagara-login-btn">
+        <span class="action-kn">ನಗರ ಲಾಗಿನ್</span>
+        <span class="action-en">Nagara login</span>
       </button>
     </div>
     <div class="action-grid nagara-only hidden" id="nagara-actions">
@@ -104,20 +112,33 @@
       <button type="button" class="done-btn" id="success-done">ಆಯಿತು/Done</button>
     </div>
 
-    <form id="shakhe-form">
+    <form id="shakhe-form" novalidate>
       <p id="form-error" class="error hidden"></p>
 
+      <div id="shakhe-step-1" class="form-step">
       <div class="field">
-        <label>ವಿಭಾಗ/Vibhag</label>
-        <p class="username" id="locked-vibhag">—</p>
+        <label for="shakhe-vibhag">ವಿಭಾಗ/Vibhag</label>
+        <p class="username hierarchy-locked-label" id="locked-vibhag">—</p>
+        <select id="shakhe-vibhag" class="hierarchy-pick">
+          <option value="">ಆಯ್ಕೆಮಾಡಿ/Select</option>
+        </select>
+        <p class="field-error" data-error-for="shakhe-vibhag"></p>
       </div>
       <div class="field">
-        <label>ಜಿಲ್ಲಾ/ಭಾಗ/Bhag</label>
-        <p class="username" id="locked-bhag">—</p>
+        <label for="shakhe-bhag">ಜಿಲ್ಲಾ/ಭಾಗ/Bhag</label>
+        <p class="username hierarchy-locked-label" id="locked-bhag">—</p>
+        <select id="shakhe-bhag" class="hierarchy-pick" disabled>
+          <option value="">ಮೊದಲು ವಿಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Vibhag first</option>
+        </select>
+        <p class="field-error" data-error-for="shakhe-bhag"></p>
       </div>
       <div class="field">
-        <label>ತಾಲ್ಲೂಕು/ನಗರ/Nagara</label>
-        <p class="username" id="locked-nagar">—</p>
+        <label for="shakhe-nagar">ತಾಲ್ಲೂಕು/ನಗರ/Nagara</label>
+        <p class="username hierarchy-locked-label" id="locked-nagar">—</p>
+        <select id="shakhe-nagar" class="hierarchy-pick" disabled>
+          <option value="">ಮೊದಲು ಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Bhag first</option>
+        </select>
+        <p class="field-error" data-error-for="shakhe-nagar"></p>
       </div>
       <div class="field">
         <label for="shakhe-vasati">ವಸತಿ/Vasati</label>
@@ -165,6 +186,9 @@
         </select>
         <p class="field-error" data-error-for="shakhe-type"></p>
       </div>
+      </div>
+
+      <div id="shakhe-step-2" class="form-step hidden">
       <div class="office-bearer" id="mukhashikshak-block">
         <label>ಮುಖಶಿಕ್ಷಕ್/Mukhashikshak</label>
         <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
@@ -195,7 +219,37 @@
         </div>
         <p class="field-error" data-error-for="palaka-phone"></p>
       </div>
-      <button type="submit" id="shakhe-submit">ಸಲ್ಲಿಸಿ/Submit</button>
+      <fieldset class="stana-block">
+        <legend>ಸ್ಥಾನ/Sthana</legend>
+        <div class="field">
+          <label for="shakhe-stana-name">ಸ್ಥಾನದ ಹೆಸರು/Sthana name</label>
+          <input type="text" id="shakhe-stana-name" minlength="5" maxlength="15" required>
+          <p class="field-error" data-error-for="shakhe-stana-name"></p>
+        </div>
+        <div class="field">
+          <label for="shakhe-address">ಸ್ಥಳ/Location</label>
+          <input type="text" id="shakhe-address" maxlength="80" placeholder="ವಿಳಾಸ ಟೈಪ್ ಮಾಡಿ/Type part of the address"
+            autocomplete="off">
+          <ul id="shakhe-address-results" class="ob-results"></ul>
+          <input type="hidden" id="shakhe-lat">
+          <input type="hidden" id="shakhe-lng">
+          <div id="shakhe-map-wrap" class="place-map-wrap">
+            <div id="shakhe-map" class="place-map"></div>
+            <p id="shakhe-coords" class="username">ವಿಳಾಸ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಪಿನ್ ಎಳೆಯಿರಿ, ನಂತರ ಖಚಿತಪಡಿಸಿ/Type an address or drag the pin, then confirm.</p>
+          </div>
+          <button type="button" id="shakhe-confirm-location">ಸ್ಥಳ ಖಚಿತಪಡಿಸಿ/Confirm location</button>
+          <button type="button" id="shakhe-edit-location" class="secondary hidden">ಸ್ಥಳ ಬದಲಾಯಿಸಿ/Edit location</button>
+          <p id="shakhe-location-locked" class="username hidden">ಸ್ಥಳ ಹಾಕಲಾಗಿದೆ. ಬದಲಾಯಿಸಬೇಕಾದರೆ ಎಡಿಟ್ ಮಾಡಿ/Location is set. Edit if you need to change it.</p>
+          <p class="field-error" data-error-for="shakhe-location"></p>
+        </div>
+      </fieldset>
+      </div>
+
+      <div class="step-nav">
+        <button type="button" id="shakhe-step-next">ಮುಂದೆ/Next</button>
+        <button type="submit" id="shakhe-submit" class="hidden">ಸಲ್ಲಿಸಿ/Submit</button>
+        <button type="button" id="shakhe-step-back" class="secondary hidden">ಹಿಂದೆ/Back</button>
+      </div>
     </form>
 
     <div id="phone-exists" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="phone-exists-title">
@@ -247,8 +301,8 @@
 
   <section id="lookup-view" class="card hidden">
     <button type="button" class="back-link" id="lookup-back">&larr; ಹಿಂದೆ/Back</button>
-    <h1>ಉಪಸ್ಥಿತಿ/Upasthiti</h1>
-    <p class="username">ಮುಖಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhashikshak phone number</p>
+    <h1 id="lookup-title">ಉಪಸ್ಥಿತಿ/Upasthiti</h1>
+    <p class="username" id="lookup-hint">ಮುಖಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhashikshak phone number</p>
     <form id="lookup-form">
       <p id="lookup-error" class="error hidden"></p>
       <div class="field">
@@ -296,6 +350,36 @@
     </form>
   </section>
 
+  <section id="shakhe-varadi-view" class="card wide table-card hidden">
+    <button type="button" class="back-link" id="varadi-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1>ಶಾಖೆ ವರದಿ/Shakhe Varadi</h1>
+    <p id="varadi-path" class="username"></p>
+    <h2 id="varadi-linked" class="shakhe-head"></h2>
+    <p id="varadi-error" class="error hidden"></p>
+    <div class="count-row">
+      <div class="field">
+        <label for="varadi-from">ಇಂದಿನಿಂದ/From</label>
+        <input type="date" id="varadi-from" lang="en-GB">
+      </div>
+      <div class="field">
+        <label for="varadi-to">ಇಲ್ಲಿಯವರೆಗೆ/To</label>
+        <input type="date" id="varadi-to" lang="en-GB">
+      </div>
+    </div>
+    <p id="varadi-day-count" class="total-line">ಆಯ್ಕೆ ಮಾಡಿದ ದಿನಗಳು/Days selected <strong>0</strong></p>
+    <p id="varadi-shakhe-count" class="total-line">ಶಾಖೆ ದಿನಗಳು/Shakhe days <strong>0</strong></p>
+    <div id="varadi-loading" class="report-loading hidden">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
+    <div class="table-wrap" id="varadi-body"></div>
+    <div id="varadi-detail" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="varadi-detail-title">
+      <div class="modal-backdrop" id="varadi-detail-dismiss"></div>
+      <div class="modal-box warn-box">
+        <button type="button" id="varadi-detail-close" class="modal-x" aria-label="Close">&times;</button>
+        <p id="varadi-detail-title"></p>
+        <div id="varadi-detail-body"></div>
+      </div>
+    </div>
+  </section>
+
   <section id="upasthiti-view" class="card wide hidden">
     <button type="button" class="back-link" id="upasthiti-back">&larr; ಹಿಂದೆ/Back</button>
     <h1 id="upasthiti-heading">ಇಂದಿನ ಶಾಖಾ ಉಪಸ್ಥಿತಿ/Today's Shakha Upasthiti</h1>
@@ -307,6 +391,11 @@
     </div>
     <p id="upasthiti-date-bold" class="shakhe-date-bold"></p>
     <p id="upasthiti-weekday" class="shakhe-weekday"></p>
+
+    <div id="upasthiti-sanghik" class="credentials hidden">
+      <p><strong>ಸಾಂಘಿಕ್/Sanghik</strong></p>
+      <p class="username">ಇಂದು ಸಾಂಘಿಕ್ ನಡೆಯಬೇಕು/Today Sanghik should happen</p>
+    </div>
 
     <div id="upasthiti-saved-view" class="hidden">
       <div id="saved-step-1" class="form-step">
@@ -443,6 +532,6 @@
 </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/app.js?v=20260902r"></script>
+  <script src="/app.js?v=20260903h"></script>
 </body>
 </html>

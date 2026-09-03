@@ -227,23 +227,30 @@ app.post('/api/varadi/logout', asyncRoute(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.get('/api/form', varadiAuth.requireSession, asyncRoute(async (req, res) => {
-  const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
+app.get('/api/form', asyncRoute(async (req, res) => {
+  const session = await varadiAuth.loadSession(req);
+  if (session && session.level === 'nagara') {
+    const result = await hierarchy.formStateForNagara(session.entityId);
+    if (result.error) return res.status(400).json({ error: result.error });
+    return res.json(result);
   }
-  const result = await hierarchy.formStateForNagara(session.entityId);
-  if (result.error) return res.status(400).json({ error: result.error });
+  const result = await hierarchy.formState();
   res.json(result);
 }));
 
-app.get('/api/options', varadiAuth.requireSession, asyncRoute(async (req, res) => {
+app.get('/api/options', limitRead, asyncRoute(async (req, res) => {
   const parentId = scalar(req.query.parentId);
   const sthara = scalar(req.query.sthara);
   if (!isObjectId(parentId) || !isSthara(sthara)) {
     return res.status(400).json({ error: 'Invalid request' });
   }
-  if (!(await assertVaradiEntityAccess(req, res, parentId))) return;
+  const session = await varadiAuth.loadSession(req);
+  if (session) {
+    req.varadiSession = session;
+    if (!(await varadiAuth.canAccessEntity(session, parentId))) {
+      return res.status(403).json({ error: 'Not allowed for this entity' });
+    }
+  }
   const result = await hierarchy.optionsUnder(parentId, sthara);
   if (result.error) return res.status(404).json({ error: result.error });
   res.json(result.options);
@@ -259,46 +266,45 @@ app.get('/api/shakhe', varadiAuth.requireSession, limitRead, asyncRoute(async (r
   res.json(result);
 }));
 
-app.get('/api/shakhe/by-upavasati', varadiAuth.requireSession, asyncRoute(async (req, res) => {
+app.get('/api/shakhe/by-upavasati', limitRead, asyncRoute(async (req, res) => {
   const upavasatiId = scalar(req.query.upavasatiId);
   if (!isObjectId(upavasatiId)) return res.status(400).json({ error: 'Invalid upavasati' });
-  if (!(await assertVaradiEntityAccess(req, res, upavasatiId))) return;
   const result = await shakheService.listForUpavasati(upavasatiId);
   if (result.error) return res.status(400).json({ error: result.error });
   res.json(result);
 }));
 
-app.get('/api/shakhe/by-mukhashikshak', varadiAuth.requireSession, limitSearch, asyncRoute(async (req, res) => {
+app.get('/api/shakhe/by-mukhashikshak', limitSearch, asyncRoute(async (req, res) => {
   const phone = phoneQuery(req.query.phone);
   if (!phone || phone.length < 6) return res.json({ shakhes: [] });
   const result = await shakheService.listForMukhashikshak(phone);
   res.json(result);
 }));
 
-app.post('/api/shakhe', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
-  const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
-  }
+app.post('/api/shakhe', limitWrite, asyncRoute(async (req, res) => {
+  const session = await varadiAuth.loadSession(req);
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  if (body.nagarId && body.nagarId !== session.entityId) {
-    return res.status(403).json({ error: 'Not allowed for this entity' });
-  }
-  body.nagarId = session.entityId;
-  const form = await hierarchy.formStateForNagara(session.entityId);
-  if (form.error) return res.status(400).json({ error: form.error });
-  const vibhag = form.levels.find((l) => l.sthara === 'Vibhag');
-  const bhag = form.levels.find((l) => l.sthara === 'Bhag');
-  if (vibhag && vibhag.value) body.vibhagId = vibhag.value.id;
-  if (bhag && bhag.value) body.bhagId = bhag.value.id;
-
-  if (!(await assertVaradiEntityAccess(req, res, body.upavasatiId || body.vasatiId || session.entityId))) {
-    return;
+  const nagaraSession = session && session.level === 'nagara';
+  if (nagaraSession) {
+    req.varadiSession = session;
+    if (body.nagarId && body.nagarId !== session.entityId) {
+      return res.status(403).json({ error: 'Not allowed for this entity' });
+    }
+    body.nagarId = session.entityId;
+    const form = await hierarchy.formStateForNagara(session.entityId);
+    if (form.error) return res.status(400).json({ error: form.error });
+    const vibhag = form.levels.find((l) => l.sthara === 'Vibhag');
+    const bhag = form.levels.find((l) => l.sthara === 'Bhag');
+    if (vibhag && vibhag.value) body.vibhagId = vibhag.value.id;
+    if (bhag && bhag.value) body.bhagId = bhag.value.id;
+    if (!(await assertVaradiEntityAccess(req, res, body.upavasatiId || body.vasatiId || session.entityId))) {
+      return;
+    }
   }
 
   const { shakhe, error, status } = await shakheService.createShakhe(body, {
     ip: audit.clientIp(req),
-    nagara: true,
+    nagara: Boolean(nagaraSession),
   });
   if (error) return res.status(status || 400).json({ error });
   await writeAudit(req, 'shakhe.create', { recordKind: 'shakhes', recordId: shakhe._id });
@@ -404,6 +410,24 @@ app.get('/api/upasthiti', limitRead, asyncRoute(async (req, res) => {
     scalar(req.query.date)
   );
   if (result.error) {
+    return res.status(result.status || 400).json({
+      error: result.error,
+      shakhe: result.shakhe || null,
+      sanghik: Boolean(result.sanghik),
+      date: result.date || null,
+    });
+  }
+  res.json(result);
+}));
+
+app.get('/api/upasthiti/range', limitRead, asyncRoute(async (req, res) => {
+  const result = await upasthitiService.loadForRange(
+    scalar(req.query.shakheId),
+    scalar(req.query.confirmPhone),
+    scalar(req.query.from),
+    scalar(req.query.to)
+  );
+  if (result.error) {
     return res.status(result.status || 400).json({ error: result.error, shakhe: result.shakhe || null });
   }
   res.json(result);
@@ -414,7 +438,7 @@ app.post('/api/upasthiti', limitWrite, asyncRoute(async (req, res) => {
     req.body && typeof req.body === 'object' ? req.body : {},
     { ip: audit.clientIp(req) }
   );
-  if (error) return res.status(status || 400).json({ error });
+  if (error) return res.status(status || 400).json({ error, sanghik: Boolean(status === 422) });
   await writeAudit(req, created ? 'upasthiti.create' : 'upasthiti.update', {
     recordKind: 'shakheupasthitis',
     recordId: entry._id,
