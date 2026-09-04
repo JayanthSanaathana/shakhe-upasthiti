@@ -315,6 +315,12 @@ let formMode = 'create';
 let editingShakheId = null;
 let listShakhes = [];
 let formFilling = false;
+let viewingShakheId = null;
+let lastVaradiChoices = [];
+let navSeq = 0;
+let historyInitialized = false;
+let restoringHistory = false;
+const navViewBySeq = new Map();
 
 function escapeHtml(value) {
   return String(value == null ? '' : value)
@@ -345,12 +351,73 @@ function updateSignOutFooters(view) {
 }
 
 function showScreen(view) {
+  const prevView = currentView;
   [homeView, formView, listView, viewShakheView, varadiGateView, varadiChoiceView, lookupView, setupView, shakheVaradiView, upasthitiView].forEach((v) =>
     v.classList.add('hidden')
   );
   view.classList.remove('hidden');
   updateSignOutFooters(view);
+  recordHistoryForView(view, prevView);
 }
+
+function recordHistoryForView(view, prevView) {
+  if (restoringHistory) return;
+  if (!historyInitialized) {
+    historyInitialized = true;
+    navViewBySeq.set(navSeq, view);
+    history.replaceState({ navSeq }, '', location.href);
+    return;
+  }
+  if (view === prevView) return;
+  navSeq += 1;
+  navViewBySeq.set(navSeq, view);
+  history.pushState({ navSeq }, '', location.href);
+}
+
+function restoreView(view) {
+  if (view === formView) {
+    if (formMode === 'edit' && editingShakheId) return openEditShakhe(editingShakheId);
+    return openForm();
+  }
+  if (view === listView) return openList();
+  if (view === viewShakheView) {
+    if (viewingShakheId) return openShakheView(viewingShakheId);
+    return openList();
+  }
+  if (view === varadiGateView) return showVaradiGate();
+  if (view === varadiChoiceView) {
+    if (lastVaradiChoices.length) return showVaradiChoices(lastVaradiChoices);
+    return showVaradiGate();
+  }
+  if (view === lookupView) {
+    return openLookup({ reset: false, purpose: lookupPurpose, keepResults: true });
+  }
+  if (view === setupView) {
+    if (linkedShakhe) return openSetup(linkedShakhe);
+    return showHome();
+  }
+  if (view === shakheVaradiView) {
+    if (linkedShakhe) return openVaradiReport(linkedShakhe);
+    return showHome();
+  }
+  if (view === upasthitiView) {
+    if (linkedShakhe) return openDaily(linkedShakhe);
+    return showHome();
+  }
+  return showHome();
+}
+
+window.addEventListener('popstate', (e) => {
+  const state = e.state;
+  const seq = state && typeof state.navSeq === 'number' ? state.navSeq : null;
+  const view = seq !== null ? navViewBySeq.get(seq) : null;
+  restoringHistory = true;
+  try {
+    restoreView(view);
+  } finally {
+    restoringHistory = false;
+  }
+});
 
 function setNagaraAuthed(on) {
   document.documentElement.classList.toggle('nagara-authed', on);
@@ -565,6 +632,7 @@ async function openFromSession(data) {
 }
 
 function showVaradiChoices(choices) {
+  lastVaradiChoices = choices || [];
   const list = document.getElementById('varadi-choice-list');
   const errorEl = document.getElementById('varadi-choice-error');
   errorEl.classList.add('hidden');
@@ -1978,6 +2046,7 @@ function ensureViewMap(lat, lng) {
 }
 
 async function openShakheView(id) {
+  viewingShakheId = id;
   const errorEl = document.getElementById('view-shakhe-error');
   const fields = document.getElementById('view-shakhe-fields');
   const place = document.getElementById('view-shakhe-place');
