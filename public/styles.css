@@ -97,6 +97,7 @@ html.nagara-app:not(.nagara-authed) #nagara-gate-view {
 
 button.mast-out,
 #nagara-logout,
+#phone-logout,
 #varadi-logout {
   width: auto;
   margin: 0;
@@ -107,6 +108,13 @@ button.mast-out,
   border-radius: 999px;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+button.switch-shakhe {
+  display: inline-flex;
+  width: auto;
+  margin: 0.35rem 0 0.85rem;
+  padding: 0.45rem 0.95rem;
 }
 
 .app-stage {
@@ -717,21 +725,32 @@ h2.shakhe-head {
   margin: 0 0 0.45rem;
 }
 
-.shakhe-date-bold {
-  margin: 0 0 0.2rem;
+.shakhe-date-bold,
+.shakhe-weekday {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.85rem;
   font-family: var(--font-display);
-  font-weight: 800;
   font-size: clamp(1.05rem, 2.4vw, 1.3rem);
   color: var(--ink);
-  line-height: 1.3;
+  line-height: 1.35;
+}
+
+.shakhe-date-bold {
+  margin: 0 0 0.35rem;
 }
 
 .shakhe-weekday {
   margin: 0 0 1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--muted);
-  line-height: 1.35;
+}
+
+.date-kicker {
+  font-weight: 500;
+}
+
+.date-value {
+  font-weight: 800;
 }
 
 #upasthiti-saved-view {
@@ -978,6 +997,13 @@ button.details-page.is-current {
   cursor: pointer;
 }
 
+.ob-results li button.is-current {
+  border-color: #e67e22;
+  border-width: 2px;
+  box-shadow: 0 0 0 1px rgba(230, 126, 34, 0.25);
+  background: #fff8f0;
+}
+
 .ob-results .no-match {
   color: var(--muted);
   font-size: 0.85rem;
@@ -1043,6 +1069,20 @@ button.details-page.is-current {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.4rem 0.6rem;
+}
+
+.list-filters {
+  margin: 0 0 0.85rem;
+}
+
+.list-filters select {
+  width: 100%;
+}
+
+@media (min-width: 720px) {
+  .list-filters {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
 }
 
 .count-row .field { margin-bottom: 0.5rem; }
@@ -1469,6 +1509,48 @@ h1.report-title {
   max-width: none;
 }
 
+.shakhe-list-table th .th-stack {
+  align-items: center;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.shakhe-list-table td {
+  white-space: normal;
+}
+
+.shakhe-list-table td.cell-name,
+.shakhe-list-table td.cell-text,
+.shakhe-list-table td.cell-person,
+.shakhe-list-table td.cell-loc,
+.shakhe-list-table td.cell-timing {
+  text-align: left;
+  min-width: 6.5rem;
+}
+
+.shakhe-list-table td.cell-name {
+  font-weight: 700;
+  min-width: 8rem;
+}
+
+.shakhe-list-table td.cell-person {
+  min-width: 9rem;
+}
+
+.shakhe-list-table td.cell-timing .cell-sub {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.shakhe-list-table th.col-check,
+.shakhe-list-table td.col-check {
+  width: 2.2rem;
+  min-width: 2.2rem;
+  text-align: center;
+}
+
 #varadi-detail .modal-box {
   max-width: 28rem;
   padding-top: 2.4rem;
@@ -1488,6 +1570,29 @@ h1.report-title {
 
 .varadi-detail-list li {
   margin: 0 0 0.25rem;
+}
+
+.pravasi-detail-list li {
+  margin: 0 0 0.65rem;
+}
+
+.pravasi-detail-name {
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.pravasi-detail-role {
+  margin-top: 0.15rem;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.pravasi-detail-place {
+  margin-top: 0.1rem;
+  color: var(--muted);
+  font-size: 0.9em;
+  line-height: 1.3;
 }
 
 #nagara-report-table,

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=20260903h">
+  <link rel="stylesheet" href="/styles.css?v=20260904m">
 </head>
 
 <body>
@@ -25,6 +25,7 @@
         <span class="title-en">Shakhe Upasthiti</span>
       </p>
       <p id="nagara-home-place" class="place-line nagara-only hidden"></p>
+      <p id="home-session-msg" class="error hidden"></p>
     </div>
     <div class="action-grid" id="guest-actions">
       <button type="button" class="action" id="open-create-shakhe-btn">
@@ -108,7 +109,9 @@
     <h1 id="form-title">ಶಾಖೆ ರಚಿಸಿ/Create Shakhe</h1>
 
     <div id="success-panel" class="credentials hidden">
-      <p><strong>ಶಾಖೆ ರಚಿಸಲಾಗಿದೆ/Shakhe created</strong></p>
+      <p><strong id="success-title">ಶಾಖೆ ರಚಿಸಲಾಗಿದೆ/Shakhe created</strong></p>
+      <p id="success-path" class="username"></p>
+      <p id="success-shakhe" class="shakhe-head"></p>
       <button type="button" class="done-btn" id="success-done">ಆಯಿತು/Done</button>
     </div>
 
@@ -190,7 +193,7 @@
 
       <div id="shakhe-step-2" class="form-step hidden">
       <div class="office-bearer" id="mukhashikshak-block">
-        <label>ಮುಖಶಿಕ್ಷಕ್/Mukhashikshak</label>
+        <label>ಮುಖ್ಯ ಶಿಕ್ಷಕ್/Mukhya Shikshak</label>
         <input type="text" class="ob-search" maxlength="20" inputmode="numeric" placeholder="ಫೋನ್ ಸಂಖ್ಯೆಯಿಂದ ಹುಡುಕಿ/Search by phone number">
         <ul class="ob-results"></ul>
         <div class="ob-selected hidden">
@@ -277,6 +280,32 @@
     <button type="button" class="back-link" id="list-back">&larr; ಹಿಂದೆ/Back</button>
     <h1>ಶಾಖೆಗಳ ಪಟ್ಟಿ/Shakhegala Patti</h1>
     <p id="list-error" class="error hidden"></p>
+    <div id="list-filters" class="list-filters count-row">
+      <div class="field">
+        <label for="list-filter-vasati">ವಸತಿ/Vasati</label>
+        <select id="list-filter-vasati">
+          <option value="">ಎಲ್ಲಾ/All</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="list-filter-upavasati">ಉಪವಸತಿ/Upavasati</label>
+        <select id="list-filter-upavasati">
+          <option value="">ಎಲ್ಲಾ/All</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="list-filter-type">ಪ್ರಕಾರ/Shakhe type</label>
+        <select id="list-filter-type">
+          <option value="">ಎಲ್ಲಾ/All</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="list-filter-timing">ಸಮಯ ವಿಭಾಗ/Shakhe time</label>
+        <select id="list-filter-timing">
+          <option value="">ಎಲ್ಲಾ/All</option>
+        </select>
+      </div>
+    </div>
     <div id="list-loading" class="report-loading hidden">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
     <div class="table-wrap" id="list-body"></div>
   </section>
@@ -302,13 +331,13 @@
   <section id="lookup-view" class="card hidden">
     <button type="button" class="back-link" id="lookup-back">&larr; ಹಿಂದೆ/Back</button>
     <h1 id="lookup-title">ಉಪಸ್ಥಿತಿ/Upasthiti</h1>
-    <p class="username" id="lookup-hint">ಮುಖಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhashikshak phone number</p>
+    <p class="username" id="lookup-hint">ಮುಖ್ಯ ಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhya Shikshak phone number</p>
     <form id="lookup-form">
       <p id="lookup-error" class="error hidden"></p>
       <div class="field">
         <input type="text" id="lookup-phone" maxlength="10" inputmode="numeric"
           placeholder="ಫೋನ್ ಸಂಖ್ಯೆ ಟೈಪ್ ಮಾಡಿ/Type phone number" autocomplete="off" required
-          aria-label="ಮುಖಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhashikshak phone number">
+          aria-label="ಮುಖ್ಯ ಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhya Shikshak phone number">
       </div>
       <button type="submit">ಶಾಖೆ ಹುಡುಕಿ/Find shakhe</button>
     </form>
@@ -319,6 +348,7 @@
     <button type="button" class="back-link" id="setup-back">&larr; ಹಿಂದೆ/Back</button>
     <h1>ಶಾಖೆ ವಿವರ/Shakhe details</h1>
     <p id="setup-linked" class="credentials"></p>
+    <button type="button" id="setup-switch-shakhe" class="secondary switch-shakhe hidden">ಶಾಖೆ ಬದಲಾಯಿಸಿ/Switch shakhe</button>
     <div id="setup-details"></div>
     <form id="setup-form">
       <p id="setup-error" class="error hidden"></p>
@@ -355,6 +385,7 @@
     <h1>ಶಾಖೆ ವರದಿ/Shakhe Varadi</h1>
     <p id="varadi-path" class="username"></p>
     <h2 id="varadi-linked" class="shakhe-head"></h2>
+    <button type="button" id="varadi-switch-shakhe" class="secondary switch-shakhe hidden">ಶಾಖೆ ಬದಲಾಯಿಸಿ/Switch shakhe</button>
     <p id="varadi-error" class="error hidden"></p>
     <div class="count-row">
       <div class="field">
@@ -367,7 +398,6 @@
       </div>
     </div>
     <p id="varadi-day-count" class="total-line">ಆಯ್ಕೆ ಮಾಡಿದ ದಿನಗಳು/Days selected <strong>0</strong></p>
-    <p id="varadi-shakhe-count" class="total-line">ಶಾಖೆ ದಿನಗಳು/Shakhe days <strong>0</strong></p>
     <div id="varadi-loading" class="report-loading hidden">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
     <div class="table-wrap" id="varadi-body"></div>
     <div id="varadi-detail" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="varadi-detail-title">
@@ -385,17 +415,13 @@
     <h1 id="upasthiti-heading">ಇಂದಿನ ಶಾಖಾ ಉಪಸ್ಥಿತಿ/Today's Shakha Upasthiti</h1>
     <p id="upasthiti-path" class="username"></p>
     <h2 id="upasthiti-linked" class="shakhe-head"></h2>
+    <button type="button" id="upasthiti-switch-shakhe" class="secondary switch-shakhe hidden">ಶಾಖೆ ಬದಲಾಯಿಸಿ/Switch shakhe</button>
     <div class="field" id="upasthiti-date-picker-wrap">
       <label for="upasthiti-date">ದಿನಾಂಕ/Date</label>
       <input type="date" id="upasthiti-date" lang="en-GB">
     </div>
     <p id="upasthiti-date-bold" class="shakhe-date-bold"></p>
     <p id="upasthiti-weekday" class="shakhe-weekday"></p>
-
-    <div id="upasthiti-sanghik" class="credentials hidden">
-      <p><strong>ಸಾಂಘಿಕ್/Sanghik</strong></p>
-      <p class="username">ಇಂದು ಸಾಂಘಿಕ್ ನಡೆಯಬೇಕು/Today Sanghik should happen</p>
-    </div>
 
     <div id="upasthiti-saved-view" class="hidden">
       <div id="saved-step-1" class="form-step">
@@ -425,19 +451,19 @@
       <div class="count-row">
         <div class="field">
           <label for="count-taruna">ತರುಣ/Taruna</label>
-          <input type="text" id="count-taruna" inputmode="numeric" maxlength="5" required>
+          <input type="text" id="count-taruna" inputmode="numeric" maxlength="5">
         </div>
         <div class="field">
           <label for="count-balaka">ಬಾಲಕ/Balaka</label>
-          <input type="text" id="count-balaka" inputmode="numeric" maxlength="5" required>
+          <input type="text" id="count-balaka" inputmode="numeric" maxlength="5">
         </div>
         <div class="field">
           <label for="count-shishu">ಶಿಶು/Shishu</label>
-          <input type="text" id="count-shishu" inputmode="numeric" maxlength="5" required>
+          <input type="text" id="count-shishu" inputmode="numeric" maxlength="5">
         </div>
         <div class="field">
           <label for="count-mata">ಮಾತಾ-ಭಗಿನಿ/Mata Bhagini</label>
-          <input type="text" id="count-mata" inputmode="numeric" maxlength="5" required>
+          <input type="text" id="count-mata" inputmode="numeric" maxlength="5">
           <p class="field-hint">(ವಿಶೇಷ ಸಂದರ್ಭಗಳಲ್ಲಿ/vishesha Sandarbhagallai)</p>
         </div>
       </div>
@@ -526,12 +552,15 @@
     </form>
   </section>
   </main>
-  <footer class="app-foot nagara-only hidden">
+  <footer id="nagara-logout-foot" class="app-foot hidden">
     <button type="button" id="nagara-logout" class="mast-out">ನಿರ್ಗಮಿಸಿ/Sign out</button>
+  </footer>
+  <footer id="phone-logout-foot" class="app-foot hidden">
+    <button type="button" id="phone-logout" class="mast-out">ನಿರ್ಗಮಿಸಿ/Sign out</button>
   </footer>
 </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/app.js?v=20260903h"></script>
+  <script src="/app.js?v=20260904o"></script>
 </body>
 </html>

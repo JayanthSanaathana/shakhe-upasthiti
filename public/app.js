@@ -14,6 +14,19 @@ const successPanel = document.getElementById('success-panel');
 const nagaraOnlyEls = document.querySelectorAll('.nagara-only');
 const guestActions = document.getElementById('guest-actions');
 const nagaraActions = document.getElementById('nagara-actions');
+const nagaraLogoutFoot = document.getElementById('nagara-logout-foot');
+const phoneLogoutFoot = document.getElementById('phone-logout-foot');
+let currentView = homeView;
+
+const VARADI_MSG_SUPERSEDED_ON_SCREEN =
+  'ಈ ಸೆಷನ್‌ನಿಂದ ನಿರ್ಗಮಿಸಲಾಗಿದೆ (ಬೇರೆಡೆ ಲಾಗಿನ್)/Logged out of this session (signed in elsewhere)';
+const VARADI_MSG_SUPERSEDED_FROM_HOME =
+  'ಬೇರೆ ಸೆಷನ್‌ನಲ್ಲಿ ಲಾಗಿನ್ ಆಗಿದೆ. ಇಲ್ಲಿ ನಿರ್ಗಮಿಸಲಾಗಿದೆ — ಮತ್ತೆ ಲಾಗಿನ್ ಮಾಡಿ/Signed in on another session. Signed out here — please sign in again';
+const VARADI_MSG_EXPIRED =
+  'ಸೆಷನ್ ಅವಧಿ ಮುಗಿದಿದೆ — ಮತ್ತೆ ಲಾಗಿನ್ ಮಾಡಿ/Session expired — please sign in again';
+const PHONE_MSG_SUPERSEDED_ON_SCREEN = VARADI_MSG_SUPERSEDED_ON_SCREEN;
+const PHONE_MSG_SUPERSEDED_FROM_HOME = VARADI_MSG_SUPERSEDED_FROM_HOME;
+const PHONE_MSG_EXPIRED = VARADI_MSG_EXPIRED;
 
 const SELECT_PLACEHOLDER = 'ಆಯ್ಕೆಮಾಡಿ/Select';
 const TIMING_LABEL = {
@@ -58,7 +71,7 @@ const SHARIRIK_ITEMS = [
   { id: 'niyuddha', kn: 'ನಿಯುದ್ಧ', en: 'Niyuddha' },
   { id: 'yeshti', kn: 'ಯಷ್ಟಿ', en: 'Yeshti' },
   { id: 'dandaYuddha', kn: 'ದಂಡ ಯುದ್ಧ', en: 'Danda yuddha' },
-  { id: 'padavinyas', kn: 'ಪಾದವಿನ್ಯಾಸ', en: 'Padavinyas' },
+  { id: 'padavinyas', kn: 'ಪದವಿನ್ಯಾಸ', en: 'Padavinyas' },
   { id: 'itara', kn: 'ಇತರೆ', en: 'Itara' },
 ];
 const MAP_DEFAULT = [12.9716, 77.5946];
@@ -178,11 +191,17 @@ function makePlacePicker(ids) {
         if (seq !== state.gpsSeq || !state.awaitingGps || state.confirmed) return;
         state.awaitingGps = false;
         ensure(pos.coords.latitude, pos.coords.longitude, 16);
+        if (ids.map === 'shakhe-map' && typeof shakheStep !== 'undefined' && shakheStep === 2) {
+          scrollShakheStepIntoView(2);
+        }
       },
       () => {
         if (seq !== state.gpsSeq || !state.awaitingGps) return;
         state.awaitingGps = false;
         ensure(MAP_DEFAULT[0], MAP_DEFAULT[1], 12);
+        if (ids.map === 'shakhe-map' && typeof shakheStep !== 'undefined' && shakheStep === 2) {
+          scrollShakheStepIntoView(2);
+        }
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
@@ -288,6 +307,9 @@ let nagaraBhagName = null;
 let nagaraVibhagName = null;
 let varadiPendingCredentials = null;
 let varadiLogoutTimer = null;
+let phoneLogoutTimer = null;
+let phoneSessionActive = false;
+let phoneShakhes = [];
 let lockedIds = { vibhagId: '', bhagId: '', nagarId: '' };
 let formMode = 'create';
 let editingShakheId = null;
@@ -310,11 +332,24 @@ function fillSelect(select, options, placeholder, selectedId) {
   select.innerHTML = `<option value="">${escapeHtml(placeholder || '')}</option>` + opts.join('');
 }
 
+function updateSignOutFooters(view) {
+  if (view) currentView = view;
+  const v = currentView;
+  const nagaraAuthed = document.documentElement.classList.contains('nagara-authed');
+  const onPhoneFlow =
+    v === lookupView || v === setupView || v === shakheVaradiView || v === upasthitiView;
+  // Nagara sign out only on the nagara home dashboard (not Create/List screens).
+  const onNagaraHome = nagaraAuthed && v === homeView;
+  if (nagaraLogoutFoot) nagaraLogoutFoot.classList.toggle('hidden', !onNagaraHome);
+  if (phoneLogoutFoot) phoneLogoutFoot.classList.toggle('hidden', !(phoneSessionActive && onPhoneFlow));
+}
+
 function showScreen(view) {
   [homeView, formView, listView, viewShakheView, varadiGateView, varadiChoiceView, lookupView, setupView, shakheVaradiView, upasthitiView].forEach((v) =>
     v.classList.add('hidden')
   );
   view.classList.remove('hidden');
+  updateSignOutFooters(view);
 }
 
 function setNagaraAuthed(on) {
@@ -322,12 +357,26 @@ function setNagaraAuthed(on) {
   nagaraOnlyEls.forEach((el) => el.classList.toggle('hidden', !on));
   guestActions.classList.toggle('hidden', on);
   nagaraActions.classList.toggle('hidden', !on);
+  updateSignOutFooters();
+}
+
+function setPhoneAuthed(on) {
+  phoneSessionActive = Boolean(on);
+  document.documentElement.classList.toggle('phone-authed', phoneSessionActive);
+  updateSignOutFooters();
 }
 
 function clearVaradiLogoutTimer() {
   if (varadiLogoutTimer) {
     clearTimeout(varadiLogoutTimer);
     varadiLogoutTimer = null;
+  }
+}
+
+function clearPhoneLogoutTimer() {
+  if (phoneLogoutTimer) {
+    clearTimeout(phoneLogoutTimer);
+    phoneLogoutTimer = null;
   }
 }
 
@@ -340,6 +389,21 @@ function armVaradiLogout(ms) {
       await fetch('/api/varadi/logout', { method: 'POST' });
     } catch (_) {}
     logoutLocal();
+    setHomeSessionMessage(VARADI_MSG_EXPIRED);
+    showHome();
+  }, wait);
+}
+
+function armPhoneLogout(ms) {
+  clearPhoneLogoutTimer();
+  const wait = Number(ms);
+  if (!Number.isFinite(wait) || wait <= 0) return;
+  phoneLogoutTimer = setTimeout(async () => {
+    try {
+      await fetch('/api/phone/logout', { method: 'POST' });
+    } catch (_) {}
+    logoutPhoneLocal();
+    setHomeSessionMessage(PHONE_MSG_EXPIRED);
     showHome();
   }, wait);
 }
@@ -352,6 +416,116 @@ function logoutLocal() {
   nagaraVibhagName = null;
   varadiPendingCredentials = null;
   setNagaraAuthed(false);
+}
+
+function selectedShakheStoreKey(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits ? `shakhe-phone-selected:v1:${digits}` : '';
+}
+
+function saveSelectedShakheId(phone, shakheId) {
+  const key = selectedShakheStoreKey(phone);
+  if (!key || !shakheId) return;
+  try {
+    localStorage.setItem(key, String(shakheId));
+  } catch (_) {}
+}
+
+function loadSelectedShakheId(phone) {
+  const key = selectedShakheStoreKey(phone);
+  if (!key) return '';
+  try {
+    return String(localStorage.getItem(key) || '');
+  } catch (_) {
+    return '';
+  }
+}
+
+function clearSelectedShakheId(phone) {
+  const key = selectedShakheStoreKey(phone);
+  if (!key) return;
+  try {
+    localStorage.removeItem(key);
+  } catch (_) {}
+}
+
+function resolveSelectedShakhe(list) {
+  const rows = Array.isArray(list) ? list : [];
+  if (!rows.length) return null;
+  if (linkedShakhe && linkedShakhe.id) {
+    const current = rows.find((s) => s && s.id === linkedShakhe.id);
+    if (current) return current;
+  }
+  const savedId = loadSelectedShakheId(confirmPhone);
+  if (savedId) {
+    const saved = rows.find((s) => s && String(s.id) === savedId);
+    if (saved) return saved;
+  }
+  if (rows.length === 1) return rows[0];
+  return null;
+}
+
+function logoutPhoneLocal() {
+  clearPhoneLogoutTimer();
+  clearSelectedShakheId(confirmPhone);
+  confirmPhone = '';
+  phoneShakhes = [];
+  linkedShakhe = null;
+  setPhoneAuthed(false);
+  syncSwitchShakheButtons();
+}
+
+function setHomeSessionMessage(message) {
+  const el = document.getElementById('home-session-msg');
+  if (!el) return;
+  if (message) {
+    el.textContent = message;
+    el.classList.remove('hidden');
+  } else {
+    el.textContent = '';
+    el.classList.add('hidden');
+  }
+}
+
+async function clearStaleVaradiCookie() {
+  try {
+    await fetch('/api/varadi/logout', { method: 'POST' });
+  } catch (_) {}
+}
+
+async function clearStalePhoneCookie() {
+  try {
+    await fetch('/api/phone/logout', { method: 'POST' });
+  } catch (_) {}
+}
+
+function bounceIfVaradiAuth(res, data) {
+  if (!(res && res.status === 401)) return false;
+  if (!document.documentElement.classList.contains('nagara-authed') && !nagaraId) return false;
+  const reason = data && data.reason;
+  let message = '';
+  if (reason === 'superseded') message = VARADI_MSG_SUPERSEDED_ON_SCREEN;
+  else if (reason === 'expired') message = VARADI_MSG_EXPIRED;
+  clearVaradiLogoutTimer();
+  clearStaleVaradiCookie();
+  logoutLocal();
+  showVaradiGate({ message });
+  return true;
+}
+
+function bounceIfPhoneAuth(res, data) {
+  if (!(res && res.status === 401)) return false;
+  const reason = data && data.reason;
+  if (reason !== 'superseded' && reason !== 'expired' && reason !== 'invalid') return false;
+  if (!phoneSessionActive && !confirmPhone) return false;
+  let message = PHONE_MSG_EXPIRED;
+  if (reason === 'superseded') message = PHONE_MSG_SUPERSEDED_ON_SCREEN;
+  clearPhoneLogoutTimer();
+  clearStalePhoneCookie();
+  logoutPhoneLocal();
+  setHomeSessionMessage(message);
+  showHome();
+  return true;
 }
 
 function showHome() {
@@ -382,6 +556,7 @@ async function openFromSession(data) {
     showVaradiGate({ message: 'ಈ ಖಾತೆಗೆ ನಗರ ಇಲ್ಲ/No Nagara access for this account' });
     return;
   }
+  setHomeSessionMessage('');
   nagaraId = data.entityId;
   nagaraName = data.entityName || '';
   setNagaraAuthed(true);
@@ -562,7 +737,7 @@ function renderPravasiList() {
     li.className = 'ob-selected';
     const text = document.createElement('span');
     text.className = 'ob-selected-text';
-    text.textContent = person.name ? `${person.name} — ${person.phone}` : person.phone;
+    text.textContent = personDetailText(person);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'ob-clear';
@@ -587,6 +762,9 @@ function addPravasiPerson(person) {
     personId: person.personId || null,
     name: person.name || '',
     phone: person.phone || phone,
+    responsibility: person.responsibility || '',
+    shakhe: person.shakhe || '',
+    nagarName: person.nagarName || '',
   });
   renderPravasiList();
 }
@@ -631,7 +809,14 @@ function bindPravasiMultiSearch() {
         const context = [p.nagarName, p.responsibility, p.shakhe].filter(Boolean).join(', ');
         btn.textContent = context ? `${p.name} — ${p.phone} (${context})` : `${p.name} — ${p.phone}`;
         btn.addEventListener('click', () => {
-          addPravasiPerson({ personId: p.personId, name: p.name, phone: p.phone });
+          addPravasiPerson({
+            personId: p.personId,
+            name: p.name,
+            phone: p.phone,
+            responsibility: p.responsibility,
+            shakhe: p.shakhe,
+            nagarName: p.nagarName,
+          });
           searchInput.value = '';
           results.innerHTML = '';
           refreshDailySubmit();
@@ -689,6 +874,19 @@ function formComplete() {
   return step1Complete() && step2Complete();
 }
 
+function scrollShakheStepIntoView(step) {
+  const anchor =
+    step === 2
+      ? document.getElementById('mukhashikshak-block') || document.getElementById('shakhe-step-2')
+      : document.getElementById('shakhe-step-1') || document.getElementById('form-view');
+  if (!anchor) return;
+  const run = () => anchor.scrollIntoView({ behavior: 'auto', block: 'start' });
+  run();
+  requestAnimationFrame(run);
+  setTimeout(run, 50);
+  setTimeout(run, 280);
+}
+
 function setShakheStep(step) {
   shakheStep = step;
   document.getElementById('shakhe-step-1').classList.toggle('hidden', step !== 1);
@@ -705,6 +903,7 @@ function setShakheStep(step) {
       formPlace.centerFromGps();
     }
   }
+  scrollShakheStepIntoView(step);
   refreshSubmit();
 }
 
@@ -744,7 +943,7 @@ function shakheWarnCard(s) {
   )}${kv('ಸಮಯ/Timing', `${TIMING_LABEL[s.timing] || s.timing || '—'} ${s.time || ''}`.trim())}${kv(
     'ಪ್ರಕಾರ/Type',
     TYPE_LABEL[s.shakheType] || s.shakheType || '—'
-  )}${kv('ಮುಖಶಿಕ್ಷಕ್/Mukhashikshak', personCell(mukhaName, s.mukhashikshakPhone))}${kv(
+  )}${kv('ಮುಖ್ಯ ಶಿಕ್ಷಕ್/Mukhya Shikshak', personCell(mukhaName, s.mukhashikshakPhone))}${kv(
     'ಕಾರ್ಯವಾಹ/Karyavaha',
     personCell(karyName, s.karyavahaPhone)
   )}${kv('ಶಾಖಾ ಪಾಲಕ್/Shakha palaka', personCell(palakaName, s.shakhaPalakaPhone))}</div>`;
@@ -912,7 +1111,9 @@ async function openForm() {
   shakheForm.classList.remove('hidden');
   formError.classList.add('hidden');
   document.getElementById('form-title').textContent = 'ಶಾಖೆ ರಚಿಸಿ/Create Shakhe';
-  document.querySelector('#success-panel strong').textContent = 'ಶಾಖೆ ರಚಿಸಲಾಗಿದೆ/Shakhe created';
+  document.getElementById('success-title').textContent = 'ಶಾಖೆ ರಚಿಸಲಾಗಿದೆ/Shakhe created';
+  document.getElementById('success-path').textContent = '';
+  document.getElementById('success-shakhe').textContent = '';
   shakheForm.reset();
   closeUpavasatiExists();
   closePhoneExists();
@@ -950,7 +1151,9 @@ async function openEditShakhe(id) {
   shakheForm.classList.remove('hidden');
   formError.classList.add('hidden');
   document.getElementById('form-title').textContent = 'ಶಾಖೆ ತಿದ್ದುಪಡಿ/Edit Shakhe';
-  document.querySelector('#success-panel strong').textContent = 'ಶಾಖೆ ಉಳಿಸಲಾಗಿದೆ/Shakhe saved';
+  document.getElementById('success-title').textContent = 'ಶಾಖೆ ಉಳಿಸಲಾಗಿದೆ/Shakhe saved';
+  document.getElementById('success-path').textContent = '';
+  document.getElementById('success-shakhe').textContent = '';
   shakheForm.reset();
   closeUpavasatiExists();
   closePhoneExists();
@@ -1016,6 +1219,85 @@ async function openEditShakhe(id) {
   }
 }
 
+const listFilters = {
+  vasatiId: '',
+  upavasatiId: '',
+  shakheType: '',
+  timing: '',
+};
+
+function fillFilterSelect(select, options, selectedValue) {
+  if (!select) return;
+  const current = selectedValue == null ? select.value : selectedValue;
+  select.innerHTML =
+    `<option value="">ಎಲ್ಲಾ/All</option>` +
+    options
+      .map((opt) => {
+        const selected = String(opt.id) === String(current) ? ' selected' : '';
+        return `<option value="${escapeHtml(String(opt.id))}"${selected}>${escapeHtml(opt.name)}</option>`;
+      })
+      .join('');
+  if (current && !options.some((opt) => String(opt.id) === String(current))) {
+    select.value = '';
+  } else {
+    select.value = current || '';
+  }
+}
+
+function uniqueEntityOptions(rows, getter) {
+  const map = new Map();
+  (rows || []).forEach((row) => {
+    const item = getter(row);
+    if (!item || !item.id) return;
+    map.set(String(item.id), { id: String(item.id), name: item.name || String(item.id) });
+  });
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'en'));
+}
+
+function refreshListFilterOptions() {
+  const vasatiEl = document.getElementById('list-filter-vasati');
+  const upavasatiEl = document.getElementById('list-filter-upavasati');
+  const typeEl = document.getElementById('list-filter-type');
+  const timingEl = document.getElementById('list-filter-timing');
+  const vasatiOptions = uniqueEntityOptions(listShakhes, (s) => s.vasati);
+  fillFilterSelect(vasatiEl, vasatiOptions, listFilters.vasatiId);
+  listFilters.vasatiId = vasatiEl ? vasatiEl.value : '';
+
+  const upavasatiSource = listFilters.vasatiId
+    ? listShakhes.filter((s) => s.vasati && String(s.vasati.id) === listFilters.vasatiId)
+    : listShakhes;
+  const upavasatiOptions = uniqueEntityOptions(upavasatiSource, (s) => s.upavasati);
+  fillFilterSelect(upavasatiEl, upavasatiOptions, listFilters.upavasatiId);
+  listFilters.upavasatiId = upavasatiEl ? upavasatiEl.value : '';
+
+  const typeOptions = Object.keys(TYPE_LABEL).map((id) => ({ id, name: TYPE_LABEL[id] }));
+  fillFilterSelect(typeEl, typeOptions, listFilters.shakheType);
+  listFilters.shakheType = typeEl ? typeEl.value : '';
+
+  const timingOptions = Object.keys(TIMING_LABEL).map((id) => ({ id, name: TIMING_LABEL[id] }));
+  fillFilterSelect(timingEl, timingOptions, listFilters.timing);
+  listFilters.timing = timingEl ? timingEl.value : '';
+}
+
+function filteredListShakhes() {
+  return (listShakhes || []).filter((s) => {
+    if (listFilters.vasatiId && !(s.vasati && String(s.vasati.id) === listFilters.vasatiId)) return false;
+    if (listFilters.upavasatiId && !(s.upavasati && String(s.upavasati.id) === listFilters.upavasatiId)) {
+      return false;
+    }
+    if (listFilters.shakheType && s.shakheType !== listFilters.shakheType) return false;
+    if (listFilters.timing && s.timing !== listFilters.timing) return false;
+    return true;
+  });
+}
+
+function readListFiltersFromDom() {
+  listFilters.vasatiId = document.getElementById('list-filter-vasati').value || '';
+  listFilters.upavasatiId = document.getElementById('list-filter-upavasati').value || '';
+  listFilters.shakheType = document.getElementById('list-filter-type').value || '';
+  listFilters.timing = document.getElementById('list-filter-timing').value || '';
+}
+
 async function openList() {
   const errorEl = document.getElementById('list-error');
   const loading = document.getElementById('list-loading');
@@ -1027,6 +1309,7 @@ async function openList() {
   const res = await fetch('/api/shakhe');
   const data = await res.json().catch(() => ({}));
   loading.classList.add('hidden');
+  if (bounceIfVaradiAuth(res, data)) return;
   if (res.status === 401) {
     logoutLocal();
     showVaradiGate();
@@ -1038,6 +1321,7 @@ async function openList() {
     return;
   }
   listShakhes = data.shakhes || [];
+  refreshListFilterOptions();
   if (!listShakhes.length) {
     body.innerHTML = '<p class="username">ಈ ನಗರದಲ್ಲಿ ಶಾಖೆಗಳಿಲ್ಲ/No shakhes in this nagara yet.</p>';
     return;
@@ -1070,8 +1354,44 @@ function personCell(name, phone) {
   return phone || name || '—';
 }
 
+function personDetailHtml(person) {
+  if (!person) return escapeHtml('—');
+  const name = person.name || '';
+  const phone = person.phone || '';
+  const responsibility = person.responsibility || '';
+  const place = [person.nagarName, person.shakhe].filter(Boolean).join(' · ');
+  const title = name && phone ? `${name} — ${phone}` : name || phone || '—';
+  let html = `<div class="pravasi-detail-name">${escapeHtml(title)}</div>`;
+  if (responsibility) {
+    html += `<div class="pravasi-detail-role">${escapeHtml(responsibility)}</div>`;
+  }
+  if (place) {
+    html += `<div class="pravasi-detail-place">${escapeHtml(place)}</div>`;
+  }
+  return html;
+}
+
+function personDetailText(person) {
+  if (!person) return '—';
+  const name = person.name || '';
+  const phone = person.phone || '';
+  const responsibility = person.responsibility || '';
+  const base = name && phone ? `${name} — ${phone}` : name || phone || '—';
+  return responsibility ? `${base} · ${responsibility}` : base;
+}
+
 function mapsUrl(lat, lng) {
   return `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`;
+}
+
+function stackedLabel(text) {
+  const raw = String(text || '');
+  const i = raw.indexOf('/');
+  if (i < 0) return escapeHtml(raw);
+  return (
+    `<span class="th-stack"><span class="th-kn">${escapeHtml(raw.slice(0, i))}</span>` +
+    `<span class="th-en">${escapeHtml(raw.slice(i + 1))}</span></span>`
+  );
 }
 
 function locationCellHtml(s) {
@@ -1087,20 +1407,50 @@ function locationCellHtml(s) {
   )}</a>`;
 }
 
-function shakheListCells(s) {
+function shakheListHeadHtml(opts) {
+  const withCheck = !!(opts && opts.withCheck);
+  const withUnhide = !!(opts && opts.withUnhide);
+  const cols = [
+    'ಶಾಖೆ/Shakhe',
+    'ವಸತಿ/Vasati',
+    'ಉಪವಸತಿ/Upavasati',
+    'ಸಮಯ/Timing',
+    'ಪ್ರಕಾರ/Type',
+    'ಮುಖ್ಯ ಶಿಕ್ಷಕ್/Mukhya Shikshak',
+    'ಕಾರ್ಯವಾಹ/Karyavaha',
+    'ಶಾಖಾ ಪಾಲಕ್/Shakha palaka',
+    'ಸ್ಥಾನ/Sthana',
+    'ಸ್ಥಳ/Location',
+    'ತಿದ್ದುಪಡಿ/Edit',
+  ];
+  const checkTh = withCheck ? '<th class="col-check"></th>' : '';
+  const unhideTh = withUnhide ? `<th>${stackedLabel('ತೋರಿಸು/Unhide')}</th>` : '';
   return (
-    `<td><button type="button" class="num-link" data-shakhe-id="${escapeHtml(s.id)}">${escapeHtml(
-      s.name
+    `<thead><tr>${checkTh}` +
+    cols.map((label) => `<th>${stackedLabel(label)}</th>`).join('') +
+    `${unhideTh}</tr></thead>`
+  );
+}
+
+function shakheListCells(s) {
+  const timing = TIMING_LABEL[s.timing] || s.timing || '—';
+  const time = s.time || '';
+  const timingHtml = time
+    ? `${escapeHtml(timing)}<span class="cell-sub">${escapeHtml(time)}</span>`
+    : escapeHtml(timing);
+  return (
+    `<td class="cell-name"><button type="button" class="num-link" data-shakhe-id="${escapeHtml(s.id)}">${escapeHtml(
+      s.name || '—'
     )}</button></td>` +
-    `<td>${escapeHtml(s.vasati && s.vasati.name)}</td>` +
-    `<td>${escapeHtml(s.upavasati && s.upavasati.name)}</td>` +
-    `<td>${escapeHtml(TIMING_LABEL[s.timing] || s.timing)} ${escapeHtml(s.time)}</td>` +
-    `<td>${escapeHtml(TYPE_LABEL[s.shakheType] || s.shakheType)}</td>` +
-    `<td>${escapeHtml(personCell(s.mukhashikshakName, s.mukhashikshakPhone))}</td>` +
-    `<td>${escapeHtml(personCell(s.karyavahaName, s.karyavahaPhone))}</td>` +
-    `<td>${escapeHtml(personCell(s.shakhaPalakaName, s.shakhaPalakaPhone))}</td>` +
-    `<td>${escapeHtml(s.stanaName || 'ಇಲ್ಲ/Not set')}</td>` +
-    `<td>${locationCellHtml(s)}</td>` +
+    `<td class="cell-text">${escapeHtml((s.vasati && s.vasati.name) || '—')}</td>` +
+    `<td class="cell-text">${escapeHtml((s.upavasati && s.upavasati.name) || '—')}</td>` +
+    `<td class="cell-timing">${timingHtml}</td>` +
+    `<td class="cell-text">${escapeHtml(TYPE_LABEL[s.shakheType] || s.shakheType || '—')}</td>` +
+    `<td class="cell-person">${escapeHtml(personCell(s.mukhashikshakName, s.mukhashikshakPhone))}</td>` +
+    `<td class="cell-person">${escapeHtml(personCell(s.karyavahaName, s.karyavahaPhone))}</td>` +
+    `<td class="cell-person">${escapeHtml(personCell(s.shakhaPalakaName, s.shakhaPalakaPhone))}</td>` +
+    `<td class="cell-text">${escapeHtml(s.stanaName || 'ಇಲ್ಲ/Not set')}</td>` +
+    `<td class="cell-loc">${locationCellHtml(s)}</td>` +
     `<td><button type="button" class="edit-link" data-edit-id="${escapeHtml(s.id)}"><span class="th-stack"><span class="th-kn">ತಿದ್ದುಪಡಿ</span><span class="th-en">Edit</span></span></button></td>`
   );
 }
@@ -1108,10 +1458,10 @@ function shakheListCells(s) {
 function paintShakheList() {
   const body = document.getElementById('list-body');
   const hidden = loadHiddenIds();
-  const visible = listShakhes.filter((s) => !hidden.has(String(s.id)));
-  const hiddenItems = listShakhes.filter((s) => hidden.has(String(s.id)));
-  const head =
-    '<thead><tr><th class="col-check"></th><th>ಶಾಖೆ/Shakhe</th><th>ವಸತಿ/Vasati</th><th>ಉಪವಸತಿ/Upavasati</th><th>ಸಮಯ/Timing</th><th>ಪ್ರಕಾರ/Type</th><th>ಮುಖಶಿಕ್ಷಕ್/Mukhashikshak</th><th>ಕಾರ್ಯವಾಹ/Karyavaha</th><th>ಶಾಖಾ ಪಾಲಕ್/Shakha palaka</th><th>ಸ್ಥಾನ/Sthana</th><th>ಸ್ಥಳ/Location</th><th>ತಿದ್ದುಪಡಿ/Edit</th></tr></thead>';
+  const filtered = filteredListShakhes();
+  const visible = filtered.filter((s) => !hidden.has(String(s.id)));
+  const hiddenItems = filtered.filter((s) => hidden.has(String(s.id)));
+  const head = shakheListHeadHtml({ withCheck: true });
   const visibleRows = visible
     .map(
       (s) =>
@@ -1121,10 +1471,10 @@ function paintShakheList() {
     )
     .join('');
   const tableHtml = visible.length
-    ? `<table>${head}<tbody>${visibleRows}</tbody></table>`
+    ? `<table class="varadi-table shakhe-list-table">${head}<tbody>${visibleRows}</tbody></table>`
     : '<p class="username">ತೋರಿಸುವ ಶಾಖೆಗಳಿಲ್ಲ/No visible shakhes</p>';
   const hiddenTable = hiddenItems.length
-    ? `<table><thead><tr><th>ಶಾಖೆ/Shakhe</th><th>ವಸತಿ/Vasati</th><th>ಉಪವಸತಿ/Upavasati</th><th>ಸಮಯ/Timing</th><th>ಪ್ರಕಾರ/Type</th><th>ಮುಖಶಿಕ್ಷಕ್/Mukhashikshak</th><th>ಕಾರ್ಯವಾಹ/Karyavaha</th><th>ಶಾಖಾ ಪಾಲಕ್/Shakha palaka</th><th>ಸ್ಥಾನ/Sthana</th><th>ಸ್ಥಳ/Location</th><th>ತಿದ್ದುಪಡಿ/Edit</th><th></th></tr></thead><tbody>${hiddenItems
+    ? `<table class="varadi-table shakhe-list-table">${shakheListHeadHtml({ withUnhide: true })}<tbody>${hiddenItems
         .map(
           (s) =>
             `<tr>${shakheListCells(s)}<td><button type="button" class="secondary" data-unhide-id="${escapeHtml(
@@ -1181,22 +1531,83 @@ document.getElementById('open-nagara-login-btn').addEventListener('click', async
       await openFromSession(data);
       return;
     }
+    if (data.reason === 'superseded') {
+      await clearStaleVaradiCookie();
+      logoutLocal();
+      showVaradiGate({ message: VARADI_MSG_SUPERSEDED_FROM_HOME });
+      return;
+    }
+    if (data.reason === 'expired') {
+      await clearStaleVaradiCookie();
+      logoutLocal();
+      showVaradiGate({ message: VARADI_MSG_EXPIRED });
+      return;
+    }
   } catch (_) {}
   showVaradiGate();
 });
 
-document.getElementById('open-upasthiti-btn').addEventListener('click', () => openLookup({ purpose: 'upasthiti' }));
-document.getElementById('open-varadi-btn').addEventListener('click', () => openLookup({ purpose: 'varadi' }));
+async function openVolunteerEntry(purpose) {
+  setHomeSessionMessage('');
+  try {
+    const res = await fetch('/api/phone/session');
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok && data.phone) {
+      await restorePhoneSession({ ...data, purpose: purpose || data.purpose || 'upasthiti' });
+      const selected = resolveSelectedShakhe(phoneShakhes);
+      if (selected) {
+        enterShakhe(selected);
+        return;
+      }
+      openLookup({
+        reset: false,
+        purpose: purpose || lookupPurpose,
+        keepResults: phoneShakhes.length > 0,
+      });
+      return;
+    }
+    if (data.reason === 'superseded' || data.reason === 'expired' || data.reason === 'invalid') {
+      await clearStalePhoneCookie();
+      logoutPhoneLocal();
+      openLookup({ purpose });
+      const errorEl = document.getElementById('lookup-error');
+      errorEl.textContent =
+        data.reason === 'superseded' ? PHONE_MSG_SUPERSEDED_FROM_HOME : PHONE_MSG_EXPIRED;
+      errorEl.classList.remove('hidden');
+      return;
+    }
+  } catch (_) {}
+  openLookup({ purpose });
+}
+
+document.getElementById('open-upasthiti-btn').addEventListener('click', () => openVolunteerEntry('upasthiti'));
+document.getElementById('open-varadi-btn').addEventListener('click', () => openVolunteerEntry('varadi'));
 document.getElementById('lookup-back').addEventListener('click', showHome);
-document.getElementById('setup-back').addEventListener('click', () => openLookup({ reset: false }));
+document.getElementById('setup-back').addEventListener('click', () => {
+  if (phoneSessionActive) {
+    showHome();
+    return;
+  }
+  openLookup({ reset: false });
+});
 document.getElementById('upasthiti-back').addEventListener('click', () => {
   if (upasthitiSource === 'varadi') {
     openVaradiReport(linkedShakhe);
     return;
   }
+  if (phoneSessionActive) {
+    showHome();
+    return;
+  }
   openLookup({ reset: false });
 });
-document.getElementById('varadi-back').addEventListener('click', () => openLookup({ reset: false, purpose: 'varadi' }));
+document.getElementById('varadi-back').addEventListener('click', () => {
+  if (phoneSessionActive) {
+    showHome();
+    return;
+  }
+  openLookup({ reset: false, purpose: 'varadi' });
+});
 document.getElementById('varadi-detail-close').addEventListener('click', closeVaradiDetail);
 document.getElementById('varadi-detail-dismiss').addEventListener('click', closeVaradiDetail);
 document.getElementById('upasthiti-done').addEventListener('click', () => {
@@ -1225,6 +1636,18 @@ document.getElementById('form-back').addEventListener('click', () => {
   showHome();
 });
 document.getElementById('list-back').addEventListener('click', showHome);
+document.getElementById('list-filter-vasati').addEventListener('change', () => {
+  readListFiltersFromDom();
+  listFilters.upavasatiId = '';
+  refreshListFilterOptions();
+  paintShakheList();
+});
+['list-filter-upavasati', 'list-filter-type', 'list-filter-timing'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', () => {
+    readListFiltersFromDom();
+    paintShakheList();
+  });
+});
 document.getElementById('view-shakhe-back').addEventListener('click', openList);
 document.getElementById('success-done').addEventListener('click', () => {
   if (formMode === 'edit') {
@@ -1239,7 +1662,22 @@ document.getElementById('nagara-logout').addEventListener('click', async () => {
     await fetch('/api/varadi/logout', { method: 'POST' });
   } catch (_) {}
   logoutLocal();
+  setHomeSessionMessage('');
   showHome();
+});
+
+document.getElementById('phone-logout').addEventListener('click', async () => {
+  try {
+    await fetch('/api/phone/logout', { method: 'POST' });
+  } catch (_) {}
+  logoutPhoneLocal();
+  setHomeSessionMessage('');
+  showHome();
+});
+
+['upasthiti-switch-shakhe', 'varadi-switch-shakhe', 'setup-switch-shakhe'].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', openSwitchShakhe);
 });
 
 document.getElementById('varadi-gate-back').addEventListener('click', showHome);
@@ -1398,6 +1836,10 @@ shakheForm.addEventListener('submit', async (e) => {
     }),
   });
   const data = await res.json().catch(() => ({}));
+  if (bounceIfVaradiAuth(res, data)) {
+    refreshSubmit();
+    return;
+  }
   if (res.status === 401) {
     if (editing) {
       logoutLocal();
@@ -1416,6 +1858,11 @@ shakheForm.addEventListener('submit', async (e) => {
     refreshSubmit();
     return;
   }
+  document.getElementById('success-title').textContent = editing
+    ? 'ಶಾಖೆ ಉಳಿಸಲಾಗಿದೆ/Shakhe saved'
+    : 'ಶಾಖೆ ರಚಿಸಲಾಗಿದೆ/Shakhe created';
+  document.getElementById('success-path').textContent = shakhePathLine(data);
+  document.getElementById('success-shakhe').textContent = data.name || '';
   shakheForm.classList.add('hidden');
   successPanel.classList.remove('hidden');
 });
@@ -1437,12 +1884,6 @@ function addDaysIso(iso, n) {
   return dt.toISOString().slice(0, 10);
 }
 
-function isSundayIso(iso) {
-  const [y, m, d] = String(iso || '').split('-').map(Number);
-  if (!y || !m || !d) return false;
-  return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0;
-}
-
 function programLabelList(ids, catalog) {
   return (ids || [])
     .map((id) => {
@@ -1459,13 +1900,18 @@ function formatDateDisplay(iso) {
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
-function weekdayLabel(iso) {
+function weekdayParts(iso) {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return '';
+  if (!m) return null;
   const d = new Date(`${m[1]}-${m[2]}-${m[3]}T12:00:00+05:30`);
-  if (Number.isNaN(d.getTime())) return '';
+  if (Number.isNaN(d.getTime())) return null;
   const day = WEEKDAY_LABEL[d.getDay()] || '';
-  return day ? `ದಿನ/Day ${day}` : '';
+  return day ? { label: 'ದಿನ/Day', value: day } : null;
+}
+
+function dateLineHtml(label, value) {
+  if (!value) return '';
+  return `<span class="date-kicker">${escapeHtml(label)}</span><span class="date-value">${escapeHtml(value)}</span>`;
 }
 
 function programCheckHtml(item, picked, disabled) {
@@ -1502,7 +1948,7 @@ function shakheSummaryHtml(s) {
     kv('ಸಮಯ ವಿಭಾಗ/Timing', TIMING_LABEL[s.timing] || s.timing) +
     kv('ಸಮಯ/Time', s.time) +
     kv('ಪ್ರಕಾರ/Type', TYPE_LABEL[s.shakheType] || s.shakheType) +
-    kv('ಮುಖಶಿಕ್ಷಕ್/Mukhashikshak', personCell(s.mukhashikshakName, s.mukhashikshakPhone)) +
+    kv('ಮುಖ್ಯ ಶಿಕ್ಷಕ್/Mukhya Shikshak', personCell(s.mukhashikshakName, s.mukhashikshakPhone)) +
     kv('ಕಾರ್ಯವಾಹ/Karyavaha', personCell(s.karyavahaName, s.karyavahaPhone)) +
     kv('ಶಾಖಾ ಪಾಲಕ್/Shakha palaka', personCell(s.shakhaPalakaName, s.shakhaPalakaPhone))
   );
@@ -1542,6 +1988,7 @@ async function openShakheView(id) {
   showScreen(viewShakheView);
   const res = await fetch(`/api/shakhe/${encodeURIComponent(id)}`);
   const data = await res.json().catch(() => ({}));
+  if (bounceIfVaradiAuth(res, data) || bounceIfPhoneAuth(res, data)) return;
   if (res.status === 401) {
     logoutLocal();
     showVaradiGate();
@@ -1588,6 +2035,64 @@ function countVal(id) {
 let lookupPurpose = 'upasthiti';
 let upasthitiSource = 'lookup';
 
+function syncSwitchShakheButtons() {
+  const show = phoneShakhes.length > 1;
+  ['upasthiti-switch-shakhe', 'varadi-switch-shakhe', 'setup-switch-shakhe'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', !show);
+  });
+}
+
+function paintPhoneShakheResults(list) {
+  const results = document.getElementById('lookup-results');
+  results.innerHTML = '';
+  const rows = Array.isArray(list) ? list : [];
+  if (!rows.length) {
+    results.innerHTML = '<li class="no-match">ಶಾಖೆ ಸಿಗಲಿಲ್ಲ/No shakhe for this phone.</li>';
+    return;
+  }
+  const selected = resolveSelectedShakhe(rows);
+  rows.forEach((s) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const place = [s.upavasati && s.upavasati.name, s.vasati && s.vasati.name, TIMING_LABEL[s.timing] || s.timing]
+      .filter(Boolean)
+      .join(' · ');
+    btn.textContent = place ? `${s.name} — ${place}` : s.name;
+    if (selected && selected.id === s.id) btn.classList.add('is-current');
+    btn.addEventListener('click', () => enterShakhe(s));
+    li.appendChild(btn);
+    results.appendChild(li);
+  });
+}
+
+async function establishPhoneSession(phone, purpose) {
+  const res = await fetch('/api/phone/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, purpose: purpose || lookupPurpose }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, error: data.error || 'ಸೆಷನ್ ಉಳಿಸಲಾಗಲಿಲ್ಲ/Could not save session', status: res.status };
+  }
+  confirmPhone = data.phone || phone;
+  setPhoneAuthed(true);
+  armPhoneLogout(data.expiresIn);
+  return { ok: true, phone: confirmPhone, expiresIn: data.expiresIn };
+}
+
+async function loadPhoneShakhes(phone) {
+  const res = await fetch(`/api/shakhe/by-phone?phone=${encodeURIComponent(phone)}`);
+  const data = await res.json().catch(() => ({}));
+  return data.shakhes || [];
+}
+
+function openSwitchShakhe() {
+  openLookup({ reset: false, purpose: lookupPurpose, keepResults: true });
+}
+
 function openLookup(opts) {
   const reset = !opts || opts.reset !== false;
   if (opts && opts.purpose) lookupPurpose = opts.purpose;
@@ -1596,21 +2101,39 @@ function openLookup(opts) {
     ? 'ಶಾಖೆ ವರದಿ/Shakhe Varadi'
     : 'ಉಪಸ್ಥಿತಿ/Upasthiti';
   document.getElementById('lookup-hint').textContent =
-    'ಮುಖಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhashikshak phone number';
+    'ಮುಖ್ಯ ಶಿಕ್ಷಕ್ ದೂರವಾಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ/Enter Mukhya Shikshak phone number';
   document.getElementById('lookup-error').classList.add('hidden');
-  document.getElementById('lookup-results').innerHTML = '';
-  if (reset) document.getElementById('lookup-phone').value = '';
+  if (reset) {
+    document.getElementById('lookup-phone').value = '';
+    document.getElementById('lookup-results').innerHTML = '';
+  } else if (confirmPhone) {
+    document.getElementById('lookup-phone').value = confirmPhone;
+  }
   showScreen(lookupView);
+  if (opts && opts.keepResults && phoneShakhes.length) {
+    paintPhoneShakheResults(phoneShakhes);
+  }
 }
 
-function setVaradiDayCount(selected, shakheDays) {
+async function restorePhoneSession(data) {
+  if (!data || !data.ok || !data.phone) return false;
+  confirmPhone = data.phone;
+  if (data.purpose === 'varadi' || data.purpose === 'upasthiti') {
+    lookupPurpose = data.purpose;
+  }
+  setPhoneAuthed(true);
+  armPhoneLogout(data.expiresIn);
+  phoneShakhes = await loadPhoneShakhes(confirmPhone);
+  const selected = resolveSelectedShakhe(phoneShakhes);
+  if (selected) linkedShakhe = selected;
+  syncSwitchShakheButtons();
+  return true;
+}
+
+function setVaradiDayCount(selected) {
   const selectedEl = document.getElementById('varadi-day-count');
-  const shakheEl = document.getElementById('varadi-shakhe-count');
   if (selectedEl) {
     selectedEl.innerHTML = `ಆಯ್ಕೆ ಮಾಡಿದ ದಿನಗಳು/Days selected <strong>${escapeHtml(String(selected || 0))}</strong>`;
-  }
-  if (shakheEl) {
-    shakheEl.innerHTML = `ಶಾಖೆ ದಿನಗಳು/Shakhe days <strong>${escapeHtml(String(shakheDays || 0))}</strong>`;
   }
 }
 
@@ -1632,15 +2155,13 @@ function varadiRangeDays() {
   fromEl.value = from;
   toEl.value = to;
   let count = 0;
-  let shakheDays = 0;
   let cur = from;
   while (cur <= to && count < 63) {
     count += 1;
-    if (!isSundayIso(cur)) shakheDays += 1;
     cur = addDaysIso(cur, 1);
   }
-  setVaradiDayCount(count, shakheDays);
-  return { from, to, count, shakheDays };
+  setVaradiDayCount(count);
+  return { from, to, count };
 }
 
 const varadiDetails = new Map();
@@ -1744,8 +2265,8 @@ function paintVaradiTable(days) {
         varadiDetails.set(`${row.date}:pravasi`, {
           title: `ಪ್ರವಾಸಿ/Pravasi · ${dateLabel}`,
           body:
-            `<ul class="varadi-detail-list">` +
-            pravasiList.map((p) => `<li>${escapeHtml(personCell(p.name, p.phone))}</li>`).join('') +
+            `<ul class="varadi-detail-list pravasi-detail-list">` +
+            pravasiList.map((p) => `<li>${personDetailHtml(p)}</li>`).join('') +
             `</ul>`,
         });
       }
@@ -1794,7 +2315,7 @@ async function loadVaradiRange() {
   const loading = document.getElementById('varadi-loading');
   const body = document.getElementById('varadi-body');
   errorEl.classList.add('hidden');
-  const { from, to, count, shakheDays } = varadiRangeDays();
+  const { from, to, count } = varadiRangeDays();
   if (count > 62) {
     errorEl.textContent = 'ಗರಿಷ್ಠ 62 ದಿನ ಆಯ್ಕೆಮಾಡಿ/Select at most 62 days';
     errorEl.classList.remove('hidden');
@@ -1810,6 +2331,7 @@ async function loadVaradiRange() {
   );
   const data = await res.json().catch(() => ({}));
   loading.classList.add('hidden');
+  if (bounceIfPhoneAuth(res, data)) return;
   if (res.status === 409) {
     openSetup(data.shakhe || linkedShakhe);
     return;
@@ -1819,7 +2341,7 @@ async function loadVaradiRange() {
     errorEl.classList.remove('hidden');
     return;
   }
-  setVaradiDayCount(data.dayCount || count, data.shakheDayCount != null ? data.shakheDayCount : shakheDays);
+  setVaradiDayCount(data.dayCount || count);
   paintVaradiTable(data.days || []);
 }
 
@@ -1831,6 +2353,7 @@ async function openVaradiReport(shakhe) {
   document.getElementById('varadi-linked').textContent = shakheTitleLine(shakhe);
   document.getElementById('varadi-error').classList.add('hidden');
   document.getElementById('varadi-body').innerHTML = '';
+  syncSwitchShakheButtons();
   const today = todayIst();
   const fromEl = document.getElementById('varadi-from');
   const toEl = document.getElementById('varadi-to');
@@ -1854,6 +2377,7 @@ async function openSetup(shakhe) {
   document.getElementById('setup-error').classList.add('hidden');
   document.getElementById('setup-linked').textContent = shakhe.name || '';
   document.getElementById('setup-details').innerHTML = shakheSummaryHtml(shakhe);
+  syncSwitchShakheButtons();
   setupPlace.reset();
   document.getElementById('setup-stana-name').value = shakhe.stanaName || '';
   showScreen(setupView);
@@ -1976,7 +2500,14 @@ function syncSharirikExtras() {
 
 function personSnapPayload(person) {
   if (!person) return null;
-  return { personId: person.personId || null, name: person.name || '', phone: person.phone || '' };
+  return {
+    personId: person.personId || null,
+    name: person.name || '',
+    phone: person.phone || '',
+    responsibility: person.responsibility || '',
+    shakhe: person.shakhe || '',
+    nagarName: person.nagarName || '',
+  };
 }
 
 function personSnapLine(person) {
@@ -1995,9 +2526,9 @@ function refreshTotal() {
 
 function dailyComplete() {
   return (
-    countVal('count-taruna') !== null &&
-    countVal('count-balaka') !== null &&
-    countVal('count-shishu') !== null &&
+    countVal('count-taruna') !== null ||
+    countVal('count-balaka') !== null ||
+    countVal('count-shishu') !== null ||
     countVal('count-mata') !== null
   );
 }
@@ -2036,8 +2567,11 @@ function setUpasthitiDate(iso) {
   const today = todayIst();
   dateEl.max = today;
   dateEl.value = iso;
-  if (bold) bold.textContent = `ದಿನಾಂಕ/Date ${formatDateDisplay(iso)}`;
-  if (weekday) weekday.textContent = weekdayLabel(iso);
+  if (bold) bold.innerHTML = dateLineHtml('ದಿನಾಂಕ/Date', formatDateDisplay(iso));
+  if (weekday) {
+    const parts = weekdayParts(iso);
+    weekday.innerHTML = parts ? dateLineHtml(parts.label, parts.value) : '';
+  }
   if (heading) {
     heading.textContent =
       iso === today ? "ಇಂದಿನ ಶಾಖಾ ಉಪಸ್ಥಿತಿ/Today's Shakha Upasthiti" : 'ಶಾಖಾ ಉಪಸ್ಥಿತಿ/Shakha Upasthiti';
@@ -2060,7 +2594,6 @@ function setSavedStep(step) {
 }
 
 function showSavedUpasthiti(entry, opts) {
-  hideSanghikBox();
   const dateIso = (entry && entry.date) || document.getElementById('upasthiti-date').value || todayIst();
   setUpasthitiDate(dateIso);
 
@@ -2075,7 +2608,7 @@ function showSavedUpasthiti(entry, opts) {
         ]
       : [];
   const pravasiText = pravasiList.length
-    ? pravasiList.map((p) => personCell(p.name, p.phone)).join(' · ')
+    ? pravasiList.map((p) => personDetailText(p)).join(' · ')
     : '—';
   const counts =
     `<div class="view-counts">` +
@@ -2135,22 +2668,7 @@ function showSavedUpasthiti(entry, opts) {
   }
 }
 
-function hideSanghikBox() {
-  const box = document.getElementById('upasthiti-sanghik');
-  if (box) box.classList.add('hidden');
-}
-
-function showSanghikBox() {
-  hideSanghikBox();
-  document.getElementById('upasthiti-saved-view').classList.add('hidden');
-  document.getElementById('upasthiti-success').classList.add('hidden');
-  document.getElementById('upasthiti-form').classList.add('hidden');
-  const box = document.getElementById('upasthiti-sanghik');
-  if (box) box.classList.remove('hidden');
-}
-
 function showDailyForm() {
-  hideSanghikBox();
   document.getElementById('upasthiti-saved-view').classList.add('hidden');
   document.getElementById('upasthiti-success').classList.add('hidden');
   document.getElementById('upasthiti-form').classList.remove('hidden');
@@ -2180,6 +2698,9 @@ function fillDaily(entry) {
       personId: p.personId || null,
       name: p.name || '',
       phone: p.phone || '',
+      responsibility: p.responsibility || '',
+      shakhe: p.shakhe || '',
+      nagarName: p.nagarName || '',
     }));
   renderPravasiList();
   document.getElementById('count-manegalu').value =
@@ -2212,21 +2733,13 @@ function fillDaily(entry) {
 async function loadDailyForDate(date) {
   resetDailyForm();
   setUpasthitiDate(date);
-  if (isSundayIso(date)) {
-    showSanghikBox();
-    return;
-  }
-  hideSanghikBox();
   const res = await fetch(
     `/api/upasthiti?shakheId=${encodeURIComponent(linkedShakhe.id)}&confirmPhone=${encodeURIComponent(
       confirmPhone
     )}&date=${encodeURIComponent(date)}`
   );
   const data = await res.json().catch(() => ({}));
-  if (data.sanghik || res.status === 422) {
-    showSanghikBox();
-    return;
-  }
+  if (bounceIfPhoneAuth(res, data)) return;
   if (res.status === 409) {
     openSetup(data.shakhe || linkedShakhe);
     return;
@@ -2255,12 +2768,14 @@ async function openDaily(shakhe, date) {
   document.getElementById('upasthiti-linked').textContent = shakheTitleLine(shakhe);
   document.getElementById('upasthiti-saved-view').classList.add('hidden');
   document.getElementById('upasthiti-form').classList.add('hidden');
+  syncSwitchShakheButtons();
   showScreen(upasthitiView);
   await loadDailyForDate(date || todayIst());
 }
 
 async function enterShakhe(shakhe) {
   linkedShakhe = shakhe;
+  if (shakhe && shakhe.id) saveSelectedShakheId(confirmPhone, shakhe.id);
   if (lookupPurpose === 'varadi') {
     await openVaradiReport(shakhe);
     return;
@@ -2285,10 +2800,19 @@ document.getElementById('lookup-form').addEventListener('submit', async (e) => {
     errorEl.classList.remove('hidden');
     return;
   }
-  confirmPhone = phone;
-  const res = await fetch(`/api/shakhe/by-phone?phone=${encodeURIComponent(phone)}`);
-  const data = await res.json().catch(() => ({}));
-  const list = data.shakhes || [];
+  const session = await establishPhoneSession(phone, lookupPurpose);
+  if (!session.ok) {
+    errorEl.textContent =
+      session.status === 429
+        ? 'ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಪ್ರಯತ್ನಿಸಿ/Try again later'
+        : session.error;
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  setHomeSessionMessage('');
+  const list = await loadPhoneShakhes(confirmPhone);
+  phoneShakhes = list;
+  syncSwitchShakheButtons();
   if (!list.length) {
     results.innerHTML = '<li class="no-match">ಶಾಖೆ ಸಿಗಲಿಲ್ಲ/No shakhe for this phone.</li>';
     return;
@@ -2297,18 +2821,7 @@ document.getElementById('lookup-form').addEventListener('submit', async (e) => {
     enterShakhe(list[0]);
     return;
   }
-  list.forEach((s) => {
-    const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    const place = [s.upavasati && s.upavasati.name, s.vasati && s.vasati.name, TIMING_LABEL[s.timing] || s.timing]
-      .filter(Boolean)
-      .join(' · ');
-    btn.textContent = place ? `${s.name} — ${place}` : s.name;
-    btn.addEventListener('click', () => enterShakhe(s));
-    li.appendChild(btn);
-    results.appendChild(li);
-  });
+  paintPhoneShakheResults(list);
 });
 
 formPlace.bind();
@@ -2351,6 +2864,9 @@ document.getElementById('setup-form').addEventListener('submit', async (e) => {
     }),
   });
   const data = await res.json().catch(() => ({}));
+  if (bounceIfPhoneAuth(res, data)) {
+    return;
+  }
   if (!res.ok) {
     errorEl.textContent = data.error || 'ಉಳಿಸಲಾಗಲಿಲ್ಲ/Could not save';
     errorEl.classList.remove('hidden');
@@ -2408,11 +2924,6 @@ document.getElementById('upasthiti-form').addEventListener('submit', async (e) =
   const errorEl = document.getElementById('upasthiti-error');
   const submitBtn = document.getElementById('upasthiti-submit');
   errorEl.classList.add('hidden');
-  const day = document.getElementById('upasthiti-date').value || todayIst();
-  if (isSundayIso(day)) {
-    showSanghikBox();
-    return;
-  }
   if (!dailyComplete()) {
     refreshDailySubmit();
     return;
@@ -2425,10 +2936,10 @@ document.getElementById('upasthiti-form').addEventListener('submit', async (e) =
       shakheId: linkedShakhe.id,
       confirmPhone,
       date: document.getElementById('upasthiti-date').value || todayIst(),
-      taruna: countVal('count-taruna'),
-      balaka: countVal('count-balaka'),
-      shishu: countVal('count-shishu'),
-      mataBhagi: countVal('count-mata'),
+      taruna: countVal('count-taruna') ?? 0,
+      balaka: countVal('count-balaka') ?? 0,
+      shishu: countVal('count-shishu') ?? 0,
+      mataBhagi: countVal('count-mata') ?? 0,
       pravasis: pravasiPeople.map((p) => personSnapPayload(p)).filter(Boolean),
       samparkitaManegalu: countVal('count-manegalu'),
       samparkitaVyaktigalu: countVal('count-vyaktigalu'),
@@ -2444,8 +2955,7 @@ document.getElementById('upasthiti-form').addEventListener('submit', async (e) =
     }),
   });
   const data = await res.json().catch(() => ({}));
-  if (data.sanghik || res.status === 422) {
-    showSanghikBox();
+  if (bounceIfPhoneAuth(res, data)) {
     refreshDailySubmit();
     return;
   }
@@ -2467,6 +2977,40 @@ document.getElementById('upasthiti-form').addEventListener('submit', async (e) =
       await openFromSession(data);
       return;
     }
+    if (data.reason === 'superseded') {
+      await clearStaleVaradiCookie();
+      logoutLocal();
+      setHomeSessionMessage(VARADI_MSG_SUPERSEDED_FROM_HOME);
+      showHome();
+      return;
+    }
+    if (data.reason === 'expired') {
+      await clearStaleVaradiCookie();
+      logoutLocal();
+      setHomeSessionMessage(VARADI_MSG_EXPIRED);
+      showHome();
+      return;
+    }
   } catch (_) {}
+
+  try {
+    const res = await fetch('/api/phone/session');
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok && data.phone) {
+      await restorePhoneSession(data);
+      showHome();
+      return;
+    }
+    if (data.reason === 'superseded') {
+      await clearStalePhoneCookie();
+      logoutPhoneLocal();
+      setHomeSessionMessage(PHONE_MSG_SUPERSEDED_FROM_HOME);
+    } else if (data.reason === 'expired' || data.reason === 'invalid') {
+      await clearStalePhoneCookie();
+      logoutPhoneLocal();
+      setHomeSessionMessage(PHONE_MSG_EXPIRED);
+    }
+  } catch (_) {}
+
   showHome();
 })();

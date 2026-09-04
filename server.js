@@ -13,6 +13,8 @@ const { searchPeople } = require('./lib/peopleSearch');
 const { isObjectId, scalar, isSthara, clipText, phoneQuery, MAX_GEOCODE } = require('./lib/safe');
 const nagaraAuth = require('./lib/nagaraAuth');
 const varadiAuth = require('./lib/varadiAuth');
+const phoneAuth = require('./lib/phoneAuth');
+const PhoneSession = require('./models/PhoneSession');
 const audit = require('./lib/audit');
 const rateLimit = require('./lib/rateLimit');
 
@@ -107,6 +109,25 @@ async function assertVaradiEntityAccess(req, res, targetEntityId) {
   }
   res.status(401).json({ error: 'Login required' });
   return false;
+}
+
+/** Prefer phone session cookie; fall back to explicit confirmPhone. */
+async function resolveVolunteerPhone(req, res, explicitConfirm) {
+  const inspected = await phoneAuth.inspectSession(req);
+  if (inspected.ok) {
+    req.phoneSession = inspected.session;
+    return inspected.session.phone;
+  }
+  if (inspected.reason && inspected.reason !== 'missing') {
+    res.status(401).json(phoneAuth.unauthorizedBody(inspected.reason));
+    return null;
+  }
+  const phone = phoneAuth.normalizePhone(explicitConfirm);
+  if (!phone) {
+    res.status(403).json({ error: 'Confirm the phone number to continue' });
+    return null;
+  }
+  return phone;
 }
 
 app.get('/api/varadi/session', asyncRoute(async (req, res) => {
@@ -224,6 +245,49 @@ app.post('/api/varadi/logout', asyncRoute(async (req, res) => {
   varadiAuth.clearSessionCookie(req, res);
   nagaraAuth.clearSessionCookie(req, res);
   await writeAudit(req, 'varadi.logout', { detail: wasAuthed ? 'ok' : null });
+  res.json({ ok: true });
+}));
+
+app.get('/api/phone/session', asyncRoute(async (req, res) => {
+  const inspected = await phoneAuth.inspectSession(req);
+  if (!inspected.ok) {
+    if (inspected.reason === 'missing') {
+      return res.json({ ok: false, reason: 'missing' });
+    }
+    return res.status(401).json(phoneAuth.unauthorizedBody(inspected.reason));
+  }
+  const session = inspected.session;
+  res.json({
+    ok: true,
+    phone: session.phone,
+    purpose: session.purpose || null,
+    expiresIn: session.expiresIn,
+  });
+}));
+
+app.post('/api/phone/login', limitWrite, asyncRoute(async (req, res) => {
+  const result = await phoneAuth.login(req);
+  if (result.error) {
+    if (result.status !== 429) {
+      await writeAudit(req, 'phone.login_fail', { detail: String(result.status || 401) });
+    }
+    return res.status(result.status || 401).json({ error: result.error });
+  }
+  phoneAuth.setSessionCookie(req, res, result.token);
+  await writeAudit(req, 'phone.login', { detail: result.phone });
+  res.json({
+    ok: true,
+    phone: result.phone,
+    purpose: result.purpose || null,
+    expiresIn: result.expiresIn,
+  });
+}));
+
+app.post('/api/phone/logout', asyncRoute(async (req, res) => {
+  const wasAuthed = Boolean(await phoneAuth.loadSession(req));
+  await phoneAuth.destroySessionFromRequest(req);
+  phoneAuth.clearSessionCookie(req, res);
+  await writeAudit(req, 'phone.logout', { detail: wasAuthed ? 'ok' : null });
   res.json({ ok: true });
 }));
 
@@ -359,7 +423,9 @@ app.get('/api/shakhe/:id', limitRead, asyncRoute(async (req, res) => {
   if (session && session.level === 'nagara') {
     result = await shakheService.viewForNagara(scalar(req.params.id), session.entityId);
   } else {
-    result = await shakheService.viewShakhe(scalar(req.params.id), scalar(req.query.confirmPhone));
+    const confirmPhone = await resolveVolunteerPhone(req, res, scalar(req.query.confirmPhone));
+    if (confirmPhone == null) return;
+    result = await shakheService.viewShakhe(scalar(req.params.id), confirmPhone);
   }
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   res.json(result.shakhe);
@@ -393,27 +459,30 @@ app.put('/api/shakhe/:id', varadiAuth.requireSession, limitWrite, asyncRoute(asy
 }));
 
 app.put('/api/shakhe/:id/setup', limitWrite, asyncRoute(async (req, res) => {
-  const result = await shakheService.completeSetup(
-    scalar(req.params.id),
-    req.body && typeof req.body === 'object' ? req.body : {},
-    { ip: audit.clientIp(req) }
-  );
+  const body = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+  const confirmPhone = await resolveVolunteerPhone(req, res, body.confirmPhone);
+  if (confirmPhone == null) return;
+  body.confirmPhone = confirmPhone;
+  const result = await shakheService.completeSetup(scalar(req.params.id), body, {
+    ip: audit.clientIp(req),
+  });
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   await writeAudit(req, 'shakhe.setup', { recordKind: 'shakhes', recordId: result.shakhe.id });
   res.json(result.shakhe);
 }));
 
 app.get('/api/upasthiti', limitRead, asyncRoute(async (req, res) => {
+  const confirmPhone = await resolveVolunteerPhone(req, res, scalar(req.query.confirmPhone));
+  if (confirmPhone == null) return;
   const result = await upasthitiService.loadForDay(
     scalar(req.query.shakheId),
-    scalar(req.query.confirmPhone),
+    confirmPhone,
     scalar(req.query.date)
   );
   if (result.error) {
     return res.status(result.status || 400).json({
       error: result.error,
       shakhe: result.shakhe || null,
-      sanghik: Boolean(result.sanghik),
       date: result.date || null,
     });
   }
@@ -421,9 +490,11 @@ app.get('/api/upasthiti', limitRead, asyncRoute(async (req, res) => {
 }));
 
 app.get('/api/upasthiti/range', limitRead, asyncRoute(async (req, res) => {
+  const confirmPhone = await resolveVolunteerPhone(req, res, scalar(req.query.confirmPhone));
+  if (confirmPhone == null) return;
   const result = await upasthitiService.loadForRange(
     scalar(req.query.shakheId),
-    scalar(req.query.confirmPhone),
+    confirmPhone,
     scalar(req.query.from),
     scalar(req.query.to)
   );
@@ -434,16 +505,19 @@ app.get('/api/upasthiti/range', limitRead, asyncRoute(async (req, res) => {
 }));
 
 app.post('/api/upasthiti', limitWrite, asyncRoute(async (req, res) => {
-  const { entry, shakhe, created, error, status } = await upasthitiService.saveUpasthiti(
-    req.body && typeof req.body === 'object' ? req.body : {},
-    { ip: audit.clientIp(req) }
-  );
-  if (error) return res.status(status || 400).json({ error, sanghik: Boolean(status === 422) });
+  const body = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+  const confirmPhone = await resolveVolunteerPhone(req, res, body.confirmPhone);
+  if (confirmPhone == null) return;
+  body.confirmPhone = confirmPhone;
+  const { entry, shakhe, created, error, status } = await upasthitiService.saveUpasthiti(body, {
+    ip: audit.clientIp(req),
+  });
+  if (error) return res.status(status || 400).json({ error });
   await writeAudit(req, created ? 'upasthiti.create' : 'upasthiti.update', {
     recordKind: 'shakheupasthitis',
     recordId: entry._id,
   });
-  res.status(created ? 201 : 200).json(upasthitiService.serialize(entry, shakhe));
+  res.status(created ? 201 : 200).json(await upasthitiService.serialize(entry, shakhe));
 }));
 
 app.use((req, res) => {
@@ -465,5 +539,6 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
   await Shakhe.syncIndexes();
   await ShakheAudit.syncIndexes();
   await ShakheUpasthiti.syncIndexes();
+  await PhoneSession.syncIndexes();
   app.listen(PORT, () => console.log(`Shakhe Upasthiti running on http://localhost:${PORT}`));
 });
