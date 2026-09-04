@@ -1612,14 +1612,15 @@ document.getElementById('varadi-detail-close').addEventListener('click', closeVa
 document.getElementById('varadi-detail-dismiss').addEventListener('click', closeVaradiDetail);
 document.getElementById('upasthiti-done').addEventListener('click', () => {
   document.getElementById('upasthiti-success').classList.add('hidden');
+  showHome();
 });
 document.getElementById('upasthiti-samparka').addEventListener('click', () => {
-  showDailyForm();
-  const mane = document.getElementById('count-manegalu');
-  if (mane) {
-    mane.focus();
-    mane.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+  document.getElementById('upasthiti-success').classList.add('hidden');
+  document.getElementById('samparka-success').classList.add('hidden');
+  document.getElementById('samparka-manegalu').value = document.getElementById('count-manegalu').value || '';
+  document.getElementById('samparka-vyaktigalu').value = document.getElementById('count-vyaktigalu').value || '';
+  document.getElementById('samparka-error').classList.add('hidden');
+  document.getElementById('upasthiti-samparka-view').classList.remove('hidden');
 });
 
 document.getElementById('open-form-btn').addEventListener('click', openForm);
@@ -2440,6 +2441,19 @@ function shakheTitleLine(s) {
   return upa ? `${s.name} · ${upa}` : s.name || '';
 }
 
+function setUpasthitiHeaderVisible(visible) {
+  ['upasthiti-date-picker-wrap', 'upasthiti-date-bold', 'upasthiti-weekday'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', !visible);
+  });
+  if (visible) {
+    syncSwitchShakheButtons();
+  } else {
+    const el = document.getElementById('upasthiti-switch-shakhe');
+    if (el) el.classList.add('hidden');
+  }
+}
+
 function setDateChrome(step) {
   const picker = document.getElementById('upasthiti-date-picker-wrap');
   const bold = document.getElementById('upasthiti-date-bold');
@@ -2554,6 +2568,8 @@ function resetDailyForm() {
   syncSharirikExtras();
   refreshTotal();
   document.getElementById('upasthiti-success').classList.add('hidden');
+  document.getElementById('upasthiti-samparka-view').classList.add('hidden');
+  document.getElementById('samparka-success').classList.add('hidden');
   document.getElementById('upasthiti-error').classList.add('hidden');
   setDailyStep(1);
   refreshDailySubmit();
@@ -2654,16 +2670,21 @@ function showSavedUpasthiti(entry, opts) {
     `<input type="text" readonly value="${sevaValue}" placeholder="—"></div>` +
     `</fieldset>`;
 
-  document.getElementById('upasthiti-saved-view').classList.remove('hidden');
   document.getElementById('upasthiti-form').classList.add('hidden');
-  setSavedStep(1);
 
   const success = document.getElementById('upasthiti-success');
+  document.getElementById('upasthiti-samparka-view').classList.add('hidden');
+  document.getElementById('samparka-success').classList.add('hidden');
   if (opts && opts.submitted) {
+    document.getElementById('upasthiti-saved-view').classList.add('hidden');
+    setUpasthitiHeaderVisible(false);
     const shakheName = (linkedShakhe && linkedShakhe.name) || (entry.shakhe && entry.shakhe.name) || '';
     document.getElementById('upasthiti-success-detail').textContent = `${shakheName} · ${formatDateDisplay(dateIso)}`;
     success.classList.remove('hidden');
   } else {
+    document.getElementById('upasthiti-saved-view').classList.remove('hidden');
+    setUpasthitiHeaderVisible(true);
+    setSavedStep(1);
     success.classList.add('hidden');
   }
 }
@@ -2671,7 +2692,10 @@ function showSavedUpasthiti(entry, opts) {
 function showDailyForm() {
   document.getElementById('upasthiti-saved-view').classList.add('hidden');
   document.getElementById('upasthiti-success').classList.add('hidden');
+  document.getElementById('upasthiti-samparka-view').classList.add('hidden');
+  document.getElementById('samparka-success').classList.add('hidden');
   document.getElementById('upasthiti-form').classList.remove('hidden');
+  setUpasthitiHeaderVisible(true);
   setDailyStep(1);
   refreshDailySubmit();
 }
@@ -2919,16 +2943,13 @@ document.getElementById('upasthiti-edit').addEventListener('click', () => {
   showDailyForm();
 });
 
-document.getElementById('upasthiti-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const errorEl = document.getElementById('upasthiti-error');
-  const submitBtn = document.getElementById('upasthiti-submit');
+async function submitUpasthiti(errorElId) {
+  const errorEl = document.getElementById(errorElId || 'upasthiti-error');
   errorEl.classList.add('hidden');
   if (!dailyComplete()) {
     refreshDailySubmit();
-    return;
+    return null;
   }
-  submitBtn.disabled = true;
   const res = await fetch('/api/upasthiti', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2957,16 +2978,46 @@ document.getElementById('upasthiti-form').addEventListener('submit', async (e) =
   const data = await res.json().catch(() => ({}));
   if (bounceIfPhoneAuth(res, data)) {
     refreshDailySubmit();
-    return;
+    return null;
   }
   if (!res.ok) {
     errorEl.textContent = data.error || 'ಉಪಸ್ಥಿತಿ ಉಳಿಸಲಾಗಲಿಲ್ಲ/Could not save Upasthiti';
     errorEl.classList.remove('hidden');
     refreshDailySubmit();
-    return;
+    return null;
   }
+  return data;
+}
+
+document.getElementById('upasthiti-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const submitBtn = document.getElementById('upasthiti-submit');
+  submitBtn.disabled = true;
+  const data = await submitUpasthiti('upasthiti-error');
+  if (!data) return;
   fillDaily(data);
   showSavedUpasthiti(data, { submitted: true });
+});
+
+document.getElementById('samparka-submit').addEventListener('click', async () => {
+  const btn = document.getElementById('samparka-submit');
+  document.getElementById('count-manegalu').value = document.getElementById('samparka-manegalu').value;
+  document.getElementById('count-vyaktigalu').value = document.getElementById('samparka-vyaktigalu').value;
+  btn.disabled = true;
+  const data = await submitUpasthiti('samparka-error');
+  btn.disabled = false;
+  if (!data) return;
+  fillDaily(data);
+  document.getElementById('upasthiti-samparka-view').classList.add('hidden');
+  const dateIso = (data && data.date) || document.getElementById('upasthiti-date').value || todayIst();
+  const shakheName = (linkedShakhe && linkedShakhe.name) || (data.shakhe && data.shakhe.name) || '';
+  document.getElementById('samparka-success-detail').textContent = `${shakheName} · ${formatDateDisplay(dateIso)}`;
+  document.getElementById('samparka-success').classList.remove('hidden');
+});
+
+document.getElementById('samparka-done').addEventListener('click', () => {
+  document.getElementById('samparka-success').classList.add('hidden');
+  showHome();
 });
 
 (async function boot() {
