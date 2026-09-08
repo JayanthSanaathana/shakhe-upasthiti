@@ -3,10 +3,11 @@
 **Date:** 2026-09-08  
 **Continue here:** `/Users/jayanth/Documents/shakhe-upasthiti`  
 **GitHub:** https://github.com/JayanthSanaathana/shakhe-upasthiti  
+**Latest commit:** `66f9713` (plus HANDOFF update) on `master`  
 **Sibling app (Utsava):** `/Users/jayanth/Documents/raksha-bandhan-utsava`  
-**Grok workspace often opens Utsava**, but almost all current work is in the sibling folder. Do not add shakhe features inside Utsava.
+**Grok workspace often opens Utsava**, but almost all current work is in this folder. Do not add shakhe features inside Utsava.
 
-A copy of this file also lives at `raksha-bandhan-utsava/HANDOFF-SHAKHE-UPASTHITI.md`.
+A copy of this file also lives at `raksha-bandhan-utsava/HANDOFF-SHAKHE-UPASTHITI.md` (may be stale).
 
 ---
 
@@ -19,10 +20,18 @@ npm run dev
 ```
 
 - Port **3002** (`PORT` or `SHAKHE_PORT`).
-- Same `MONGO_URI` as Utsava. Atlas cluster rss `vxrxuqt`.
-- If Mongo TLS / `alert 80`: current public IP is not allowlisted (example seen: `104.28.220.169` Cloudflare).
-- Cache-bust: `public/index.html` loads `/app.js?v=20260908a` and `/styles.css?v=20260908a`. **Bump these** after every `public/app.js` or `styles.css` change.
-- Git: `master` tracking `origin` at https://github.com/JayanthSanaathana/shakhe-upasthiti (public). `.env` is gitignored.
+- Same `MONGO_URI` as Utsava.
+- Cache-bust: `public/index.html` loads `/app.js?v=20260908n` and `/styles.css?v=20260908n`. **Bump both** after every `public/app.js` or `styles.css` change.
+- Git: `master` → `origin/master` at https://github.com/JayanthSanaathana/shakhe-upasthiti. `.env` is gitignored.
+
+---
+
+## Auth scope (important)
+
+**Nagara login only** for the entity dashboard and reports.  
+Prant / vibhag / bhag logins get “No Nagara access” — multi-level varadi (Utsava-style) is **not** built here yet.
+
+Volunteer path uses **phone session** (`lib/phoneAuth.js`), separate from nagara.
 
 ---
 
@@ -30,41 +39,77 @@ npm run dev
 
 Standalone nagara + volunteer attendance app. Not inside Utsava.
 
-**Home (guest):** Create Shakha, Upasthiti, Shakhe Varadi (per-shakhe phone path), Nagara login.
+### Home (guest)
 
-**After nagara login** — bordered `.action` tiles (same as Patti):
-1. Create Shakhe
-2. Shakhegala Patti
-3. **Shakhe Varadi** (nagara aggregate report)
-4. **Sharirik Varadi** (placeholder / coming soon)
-5. **Boudhik Varadi** (placeholder / coming soon)
+Create Shakha · Upasthiti · Shakhe Varadi (phone) · Nagara login
 
-### Nagara Shakhe Varadi (`#nagara-report-view`)
+### After nagara login — `.action` tiles
 
-- Date range From/To (default last 7 days IST, max 62).
-- Place line: left `ಭಾಗ - …`, right `ನಗರ - …`. Full cell borders. Averages use ceil.
-- Vasati rows + total foot. Columns:
-  - Total upavasati (click → with/without shakhe dropdowns)
-  - **ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe** — all created shakhes (click → shakhe patti)
-  - **ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva** — ≥1 upasthiti day in range (click → each shakhe + varadi table)
-  - **ನಡೆಯದ ಶಾಖೆ/Nadayada** — created but no upasthiti in range (click → shakhe patti)
-  - **ಸರಾಸರಿ/Sarisumaru** + **ಒಟ್ಟು ಸಂಪರ್ಕ/Ottu samparka**
+1. Create Shakhe  
+2. Shakhegala Patti  
+3. **Shakhe Varadi**  
+4. **Sharirik Varadi**  
+5. **Boudhik Varadi**
 
-APIs:
-- `GET /api/nagara/shakhe-varadi?from&to`
-- `GET /api/nagara/upavasatis?filter=&vasatiId=`
-- `GET /api/nagara/shakhes?filter=all|running|not-running&vasatiId=&from=&to=`
-- Aggregation: `lib/shakheVaradiReport.js`
+### Create / Patti
 
-### Volunteer Upasthiti / per-shakhe Varadi (phone)
+- Create: bearers kept; labels **ಸ್ಥಳ/Sthala** + **ಗೂಗಲ್ ಸ್ಥಳ/Google location**.
+- Patti columns: Shakhe, Vasati, Upavasati, Timing, Type, **Sthala**, **Google location**, Edit.  
+  **No** Mukhya Shikshak / Karyavaha / Shakha palaka columns on the list.
 
-- Phone login → list shakhes → daily upasthiti or per-shakhe date-range varadi (`#shakhe-varadi-view`).
-- Daily unique index `shakhe + date` (IST). Program folds for Boudhik/Sharirik checkboxes.
+### Nagara reports (`#nagara-report-view`)
 
-**After nagara login (create/list)**
-- Create Shakhe / list Shakhes.
-- Locked vibhag / bhag / nagar from session.
-- Bearers via people phone-search; warning modals (do not block create). Cards show **name — number**.
+Shared chrome for all three kinds (`nagaraReportKind`: `shakhe` | `boudhik` | `sharirik`):
+
+- From/To (default last 7 days IST, max 62 calendar days).
+- Place line: left `ಭಾಗ - …`, right `ನಗರ - …`.
+- Full cell borders; Baloo display fonts.
+- **ಭಾನುವಾರ ಹೊರತುಪಡಿಸಿ/Exclude Sunday** under Days selected — drops Sundays from day count, day tables, and all sums/averages/checkbox counts.
+
+#### Shakhe Varadi columns
+
+- **Vasati name** (clickable) → upavasati list with **with shakhe** / **without shakhe** dropdowns.  
+  With-shakhe: grouped by upavasati; each shakhe row = name, timing, type, mukhyashikshak.  
+  (Total upavasati **column removed**.)
+- Yojita / Nadayuthiruva / Nadayada (clickable counts).
+- **ಸರಾಸರಿ/Sarisumaru** + **ಒಟ್ಟು ಸಂಪರ್ಕ/Ottu samparka**.
+
+**Sarisumaru formula:**  
+`ceil(sum(field) ÷ count of upasthiti entries in range)`  
+(shakhe×date entries; Sundays excluded when checkbox on). Exact ints stay; always round **up**.
+
+#### Nadayuthiruva list
+
+- Columns: **Upavasati → Shakhe → Details (timing/type collapsed) → Days ran `4/7` → Sarisumaru → Ottu samparka**.
+- Click **shakhe name** → shakhe details view.  
+- Click **days ran** → day-by-day Shakhe Varadi table + **Total** foot row.  
+- Total foot matches pooled vasati calculation from previous screen.  
+- Back from day varadi → list; Back from list → report.
+
+#### Boudhik / Sharirik Varadi
+
+- Vasati rows: Days ran, Nadayuthiruva, then **one column per checkbox** (count of entries where that id was ticked).
+- Click Nadayuthiruva → shakhe list → click days → day grid with ✓/— per checkbox + Itara + totals.
+
+### Volunteer Upasthiti / phone Varadi
+
+- Sign out → **phone lookup** screen (not main home).  
+- Lookup Back → main home.  
+- **Recent shakhes** (max 5, `localStorage` `shakhe-phone-recent:v1`): shown when phone field empty; hidden when typing or after Find shakhe. Tap → re-login that phone and open shakhe.
+- Daily upasthiti + per-shakhe phone varadi still on `#upasthiti-view` / `#shakhe-varadi-view`.
+
+---
+
+## APIs (nagara session)
+
+| Endpoint | Role |
+|---|---|
+| `GET /api/nagara/shakhe-varadi?from&to&excludeSunday=` | Vasati aggregate attendance report |
+| `GET /api/nagara/program-varadi?kind=boudhik\|sharirik&from&to&excludeSunday=` | Per-checkbox program report |
+| `GET /api/nagara/upavasatis?filter=&vasatiId=` | Upavasati with/without shakhe (+ shakhe detail for with) |
+| `GET /api/nagara/shakhes?filter=all\|running\|not-running\|varadi&vasatiId=&shakheId=&from=&to=&excludeSunday=` | Shakhe lists + day varadi |
+
+Aggregation: `lib/shakheVaradiReport.js`
 
 ---
 
@@ -72,36 +117,35 @@ APIs:
 
 | Path | Role |
 |---|---|
-| `server.js` | Express, CSP, APIs including nagara shakhe-varadi |
-| `public/index.html` | Screens; cache-bust query |
-| `public/app.js` | Client logic |
-| `public/styles.css` | action tiles, report table, list-dropdown |
-| `lib/shakheVaradiReport.js` | Nagara aggregate report + upavasati lists |
-| `lib/shakheService.js` | create/list/update |
-| `lib/upasthitiService.js` | daily upsert/get (phone) |
-| `lib/phoneAuth.js` / `models/PhoneSession.js` | volunteer phone sessions |
-| `lib/ashtabindu.js` | allowed boudhik/sharirik ids |
-| Shared entity models | Entity, Person, Role, VaradiSession — same DB as Utsava |
+| `server.js` | Express + nagara report routes |
+| `public/index.html` | Screens; cache-bust `?v=` |
+| `public/app.js` | Client (large): nagara reports, lookup recent, volunteer |
+| `public/styles.css` | Tiles, report grid, folds, recent list |
+| `lib/shakheVaradiReport.js` | Report aggregation |
+| `lib/shakheService.js` | create/list/update (+ `withPeopleNames` export) |
+| `lib/upasthitiService.js` | Daily upsert/get (phone) |
+| `lib/phoneAuth.js` / `models/PhoneSession.js` | Phone sessions |
+| `lib/ashtabindu.js` | Boudhik/Sharirik catalog ids |
 
 ---
 
 ## Do not regress
 
-- Warning modals: names, not phones only.
-- Edit shakhe: karyavaha/palaka names fill; overlay until loaded.
-- Boudhik/charche persist and show **name — number**.
-- Page 2 date picker must stay hidden on volunteer daily form.
-- Missing Varadi session is `200 {ok:false,reason:missing}`, not 401 on home.
-- Favicon: `/favicon.svg` + `/favicon.ico` redirect.
-- Volunteer `#shakhe-varadi-view` stays separate from nagara `#nagara-report-view`.
+- Warning modals: **name — number**, not phones only.
+- Edit shakhe: bearer names fill; `#form-loading` until done.
+- Volunteer page 2: date picker hidden (bold date only).
+- Missing varadi session on home: `200 {ok:false,reason:missing}`, not 401.
+- Favicon `/favicon.svg` + `/favicon.ico` redirect.
+- Keep volunteer `#shakhe-varadi-view` separate from nagara `#nagara-report-view`.
+- Nagara-list Back from Yojita/etc. → Shakhe Varadi report (not Patti).
+- Exclude Sunday must affect day count, day tables, and all calculations.
 
 ---
 
 ## Likely next asks
 
-- Implement Sharirik / Boudhik nagara varadi reports (buttons already present).
-- Confirm average denominator if users want distinct calendar days instead of shakhe×date entries.
-- Drill into shakhe list from with-shakhe dropdown.
+- Prant / vibhag / bhag multi-level reports (like Utsava).
+- Different Sarisumaru rule (no ceil, or mean-of-shakhe-avgs).
 - Deploy / Railway.
 
 ---
@@ -112,10 +156,12 @@ APIs:
 Continue Shakhe Upasthiti, not Utsava.
 
 Project: /Users/jayanth/Documents/shakhe-upasthiti  port 3002
-Read HANDOFF.md in that folder first.
+Read HANDOFF.md first.
 
-Latest: After nagara login — Create, Patti, Shakhe Varadi, Sharirik Varadi, Boudhik Varadi tiles.
-Shakhe Varadi is nagara report with date range, Sarisumaru averages, Ottu samparka sums;
-Total upavasati opens with/without shakhe dropdowns. Sharirik/Boudhik are placeholders.
-Cache bust public/index.html app.js?v= / styles.css?v= after JS/CSS edits.
+Latest on master: Nagara tiles — Create, Patti, Shakhe/Sharirik/Boudhik Varadi.
+Shakhe Varadi: clickable vasati → with/without shakhe; Yojita/Nadayuthiruva/Nadayada;
+Sarisumaru = ceil(sum/entries); Exclude Sunday; Nadayuthiruva list with 4/7 + totals.
+Boudhik/Sharirik: per-checkbox columns + day ✓ grid.
+Upasthiti sign-out → phone lookup + recent shakhes (max 5).
+Auth is nagara-only for reports. Cache bust app.js?v= / styles.css?v= (now 20260908n).
 ```
