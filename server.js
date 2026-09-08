@@ -9,6 +9,7 @@ const ShakheUpasthiti = require('./models/ShakheUpasthiti');
 const hierarchy = require('./lib/hierarchy');
 const shakheService = require('./lib/shakheService');
 const upasthitiService = require('./lib/upasthitiService');
+const shakheVaradiReport = require('./lib/shakheVaradiReport');
 const { searchPeople } = require('./lib/peopleSearch');
 const { isObjectId, scalar, isSthara, clipText, phoneQuery, MAX_GEOCODE } = require('./lib/safe');
 const nagaraAuth = require('./lib/nagaraAuth');
@@ -327,6 +328,76 @@ app.get('/api/shakhe', varadiAuth.requireSession, limitRead, asyncRoute(async (r
   }
   const result = await shakheService.listForNagara(session.entityId);
   if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.get('/api/nagara/shakhe-varadi', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  if (!session || session.level !== 'nagara') {
+    return res.status(401).json({ error: 'Nagara login required' });
+  }
+  const excludeSunday =
+    scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+  const result = await shakheVaradiReport.reportForNagara(
+    session.entityId,
+    scalar(req.query.from),
+    scalar(req.query.to),
+    excludeSunday
+  );
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.get('/api/nagara/program-varadi', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  if (!session || session.level !== 'nagara') {
+    return res.status(401).json({ error: 'Nagara login required' });
+  }
+  const kind = scalar(req.query.kind);
+  const excludeSunday =
+    scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+  const result = await shakheVaradiReport.reportProgramForNagara(
+    session.entityId,
+    kind,
+    scalar(req.query.from),
+    scalar(req.query.to),
+    excludeSunday
+  );
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.get('/api/nagara/upavasatis', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  if (!session || session.level !== 'nagara') {
+    return res.status(401).json({ error: 'Nagara login required' });
+  }
+  const result = await shakheVaradiReport.listUpavasatisForNagara({
+    nagarId: session.entityId,
+    vasatiId: scalar(req.query.vasatiId) || undefined,
+    filter: scalar(req.query.filter) || 'all',
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.get('/api/nagara/shakhes', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  if (!session || session.level !== 'nagara') {
+    return res.status(401).json({ error: 'Nagara login required' });
+  }
+  const excludeSunday =
+    scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+  const result = await shakheVaradiReport.listShakhesForNagara({
+    nagarId: session.entityId,
+    vasatiId: scalar(req.query.vasatiId) || undefined,
+    shakheId: scalar(req.query.shakheId) || undefined,
+    filter: scalar(req.query.filter) || 'all',
+    fromDate: scalar(req.query.from) || undefined,
+    toDate: scalar(req.query.to) || undefined,
+    excludeSunday,
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
   res.json(result);
 }));
 

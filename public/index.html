@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=20260904m">
+  <link rel="stylesheet" href="/styles.css?v=20260908n">
 </head>
 
 <body>
@@ -53,6 +53,18 @@
       <button type="button" class="action" id="open-list-btn">
         <span class="action-kn">ಶಾಖೆಗಳ ಪಟ್ಟಿ</span>
         <span class="action-en">Shakhegala Patti</span>
+      </button>
+      <button type="button" class="action" id="open-nagara-shakhe-varadi-btn">
+        <span class="action-kn">ಶಾಖೆ ವರದಿ</span>
+        <span class="action-en">Shakhe Varadi</span>
+      </button>
+      <button type="button" class="action" id="open-nagara-sharirik-varadi-btn">
+        <span class="action-kn">ಶಾರೀರಿಕ ವರದಿ</span>
+        <span class="action-en">Sharirik Varadi</span>
+      </button>
+      <button type="button" class="action" id="open-nagara-boudhik-varadi-btn">
+        <span class="action-kn">ಬೌದ್ಧಿಕ್ ವರದಿ</span>
+        <span class="action-en">Boudhik Varadi</span>
       </button>
     </div>
   </section>
@@ -223,14 +235,14 @@
         <p class="field-error" data-error-for="palaka-phone"></p>
       </div>
       <fieldset class="stana-block">
-        <legend>ಸ್ಥಾನ/Sthana</legend>
+        <legend>ಸ್ಥಳ/Sthala</legend>
         <div class="field">
-          <label for="shakhe-stana-name">ಸ್ಥಾನದ ಹೆಸರು/Sthana name</label>
+          <label for="shakhe-stana-name">ಸ್ಥಳದ ಹೆಸರು/Sthala name</label>
           <input type="text" id="shakhe-stana-name" minlength="5" maxlength="15" required>
           <p class="field-error" data-error-for="shakhe-stana-name"></p>
         </div>
         <div class="field">
-          <label for="shakhe-address">ಸ್ಥಳ/Location</label>
+          <label for="shakhe-address">ಗೂಗಲ್ ಸ್ಥಳ/Google location</label>
           <input type="text" id="shakhe-address" maxlength="80" placeholder="ವಿಳಾಸ ಟೈಪ್ ಮಾಡಿ/Type part of the address"
             autocomplete="off">
           <ul id="shakhe-address-results" class="ob-results"></ul>
@@ -240,9 +252,9 @@
             <div id="shakhe-map" class="place-map"></div>
             <p id="shakhe-coords" class="username">ವಿಳಾಸ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಪಿನ್ ಎಳೆಯಿರಿ, ನಂತರ ಖಚಿತಪಡಿಸಿ/Type an address or drag the pin, then confirm.</p>
           </div>
-          <button type="button" id="shakhe-confirm-location">ಸ್ಥಳ ಖಚಿತಪಡಿಸಿ/Confirm location</button>
-          <button type="button" id="shakhe-edit-location" class="secondary hidden">ಸ್ಥಳ ಬದಲಾಯಿಸಿ/Edit location</button>
-          <p id="shakhe-location-locked" class="username hidden">ಸ್ಥಳ ಹಾಕಲಾಗಿದೆ. ಬದಲಾಯಿಸಬೇಕಾದರೆ ಎಡಿಟ್ ಮಾಡಿ/Location is set. Edit if you need to change it.</p>
+          <button type="button" id="shakhe-confirm-location">ಗೂಗಲ್ ಸ್ಥಳ ಖಚಿತಪಡಿಸಿ/Confirm Google location</button>
+          <button type="button" id="shakhe-edit-location" class="secondary hidden">ಗೂಗಲ್ ಸ್ಥಳ ಬದಲಾಯಿಸಿ/Edit Google location</button>
+          <p id="shakhe-location-locked" class="username hidden">ಗೂಗಲ್ ಸ್ಥಳ ಹಾಕಲಾಗಿದೆ. ಬದಲಾಯಿಸಬೇಕಾದರೆ ಎಡಿಟ್ ಮಾಡಿ/Google location is set. Edit if you need to change it.</p>
           <p class="field-error" data-error-for="shakhe-location"></p>
         </div>
       </fieldset>
@@ -318,14 +330,14 @@
     <div id="view-shakhe-place" class="hidden">
       <div id="view-stana-fields"></div>
       <div class="kv">
-        <dt>ಸ್ಥಳ/Location</dt>
+        <dt>ಗೂಗಲ್ ಸ್ಥಳ/Google location</dt>
       </div>
       <div id="view-map-wrap">
         <div id="view-map"></div>
         <p id="view-coords" class="username"></p>
       </div>
     </div>
-    <p id="view-shakhe-pending" class="username hidden">ಸ್ಥಾನ ಮತ್ತು ಸ್ಥಳ ಇನ್ನೂ ಸೇರಿಸಿಲ್ಲ/Sthana and location are not added yet.</p>
+    <p id="view-shakhe-pending" class="username hidden">ಸ್ಥಳ ಮತ್ತು ಗೂಗಲ್ ಸ್ಥಳ ಇನ್ನೂ ಸೇರಿಸಿಲ್ಲ/Sthala and Google location are not added yet.</p>
   </section>
 
   <section id="lookup-view" class="card hidden">
@@ -341,6 +353,10 @@
       </div>
       <button type="submit">ಶಾಖೆ ಹುಡುಕಿ/Find shakhe</button>
     </form>
+    <div id="lookup-recent" class="lookup-recent hidden">
+      <p class="lookup-recent-title">ಇತ್ತೀಚಿನ ಶಾಖೆಗಳು/Recent shakhes</p>
+      <ul id="lookup-recent-list" class="ob-results"></ul>
+    </div>
     <ul id="lookup-results" class="ob-results"></ul>
   </section>
 
@@ -378,6 +394,57 @@
       </fieldset>
       <button type="submit" id="setup-submit">ಉಳಿಸಿ/Save</button>
     </form>
+  </section>
+
+  <section id="nagara-report-view" class="card wide table-card hidden">
+    <button type="button" class="back-link" id="nagara-report-back">&larr; ಹಿಂದೆ/Back</button>
+    <div class="report-head">
+      <h1 id="nagara-report-title" class="report-title">
+        <span class="title-kn">ಶಾಖೆ ವರದಿ</span>
+        <span class="title-en">Shakhe Varadi</span>
+      </h1>
+      <p class="report-place">
+        <span id="report-bhag"></span>
+        <span id="report-nagar"></span>
+      </p>
+    </div>
+    <div class="count-row">
+      <div class="field">
+        <label for="nagara-varadi-from">ಇಂದಿನಿಂದ/From</label>
+        <input type="date" id="nagara-varadi-from" lang="en-GB">
+      </div>
+      <div class="field">
+        <label for="nagara-varadi-to">ಇಲ್ಲಿಯವರೆಗೆ/To</label>
+        <input type="date" id="nagara-varadi-to" lang="en-GB">
+      </div>
+    </div>
+    <p id="nagara-varadi-day-count" class="total-line">ಆಯ್ಕೆ ಮಾಡಿದ ದಿನಗಳು/Days selected <strong>0</strong></p>
+    <label class="exclude-sunday-line" for="nagara-exclude-sunday">
+      <input type="checkbox" id="nagara-exclude-sunday">
+      <span>ಭಾನುವಾರ ಹೊರತುಪಡಿಸಿ/Exclude Sunday</span>
+    </label>
+    <p id="nagara-report-error" class="error hidden"></p>
+    <div id="nagara-report-loading" class="report-loading hidden" aria-live="polite">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
+    <div class="table-wrap" id="nagara-report-table-wrap">
+      <table id="nagara-report-table"></table>
+    </div>
+  </section>
+
+  <section id="nagara-list-view" class="card wide table-card hidden">
+    <button type="button" class="back-link" id="nagara-list-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1 id="nagara-list-title" class="report-title">ಉಪವಸತಿ/Upavasati</h1>
+    <p id="nagara-list-error" class="error hidden"></p>
+    <div id="nagara-list-loading" class="report-loading hidden" aria-live="polite">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
+    <div id="nagara-list-body" class="table-wrap"></div>
+  </section>
+
+  <section id="varadi-placeholder-view" class="card hidden">
+    <button type="button" class="back-link" id="varadi-placeholder-back">&larr; ಹಿಂದೆ/Back</button>
+    <h1 id="varadi-placeholder-title" class="page-title">
+      <span class="title-kn">ವರದಿ</span>
+      <span class="title-en">Varadi</span>
+    </h1>
+    <p id="varadi-placeholder-msg" class="username">ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ/Coming soon</p>
   </section>
 
   <section id="shakhe-varadi-view" class="card wide table-card hidden">
@@ -582,6 +649,6 @@
 </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/app.js?v=20260904o"></script>
+  <script src="/app.js?v=20260908n"></script>
 </body>
 </html>

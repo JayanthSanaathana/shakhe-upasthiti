@@ -160,6 +160,9 @@ button.switch-shakhe {
 .app-stage > .card.table-card > .back-link,
 .app-stage > .card.table-card > .report-head,
 .app-stage > .card.table-card > .list-type-filter,
+.app-stage > .card.table-card > .count-row,
+.app-stage > .card.table-card > .total-line,
+.app-stage > .card.table-card > .exclude-sunday-line,
 .app-stage > .card.table-card > h1,
 .app-stage > .card.table-card > .error,
 .app-stage > .card.table-card > .report-loading {
@@ -1010,6 +1013,18 @@ button.details-page.is-current {
   padding: 0.2rem 0;
 }
 
+.lookup-recent {
+  margin: 0.85rem 0 0.35rem;
+}
+
+.lookup-recent-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--heading);
+}
+
 .ob-results .lookup-selection-hint {
   color: var(--ink);
   font-family: inherit;
@@ -1440,8 +1455,170 @@ h1.report-title {
 
 .report-total-row td {
   font-weight: 800;
-  border-top: 2px solid var(--border);
+  border: 1px solid #8a97ab;
   background: color-mix(in srgb, var(--bg) 70%, var(--surface));
+}
+
+#nagara-report-table th.group-head {
+  text-align: center;
+  border: 1px solid #8a97ab;
+  background: #e4ebf5;
+  vertical-align: middle;
+  font-weight: 800;
+}
+
+#nagara-report-table thead tr:first-child th.group-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+#nagara-report-table thead tr:nth-child(2) th {
+  top: 2.1rem;
+}
+
+#nagara-list-body .upa-simple-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+#nagara-list-body .upa-simple-table th,
+#nagara-list-body .upa-simple-table td {
+  padding: 0.4rem 0.45rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+#nagara-list-body .upa-simple-table th.num,
+#nagara-list-body .upa-simple-table td.num {
+  text-align: center;
+  white-space: nowrap;
+}
+
+#nagara-list-body .nagara-running-varadi {
+  margin: 0.25rem 0 0.35rem;
+  font-size: 0.74rem;
+}
+
+#nagara-list-body .list-dropdown-title .username {
+  display: inline;
+  margin: 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+#nagara-list-body .upa-shakhe-group {
+  margin: 0.45rem 0;
+}
+
+#nagara-list-body .upa-shakhe-group > summary {
+  background: color-mix(in srgb, var(--bg) 65%, #fff);
+}
+
+#nagara-list-body .upa-shakhe-group .upa-shakhe-detail {
+  width: 100%;
+  margin: 0.15rem 0 0.25rem;
+}
+
+#nagara-list-body .upa-shakhe-group .upa-shakhe-detail td.cell-name {
+  font-weight: 700;
+  white-space: normal;
+  min-width: 8rem;
+}
+
+#nagara-list-body .upa-shakhe-group .upa-shakhe-detail td.cell-person,
+#nagara-list-body .upa-shakhe-group .upa-shakhe-detail td.cell-text,
+#nagara-list-body .upa-shakhe-group .upa-shakhe-detail td.cell-timing {
+  white-space: normal;
+}
+
+#nagara-list-body .nagara-shakhe-varadi-head {
+  margin: 0 0 0.65rem;
+}
+
+#nagara-list-body .nagara-shakhe-varadi-head .shakhe-head {
+  margin: 0 0 0.25rem;
+}
+
+#nagara-list-body .nagara-shakhe-varadi-head .username {
+  margin: 0.1rem 0;
+}
+
+#nagara-list-body .nagara-running-varadi {
+  width: max-content;
+  min-width: 100%;
+}
+
+#nagara-list-body .program-check-table td.program-check-yes {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+#nagara-report-table th .th-stack {
+  max-width: 5.5rem;
+}
+
+#nagara-report-table button.vasati-name-link {
+  font-weight: 700;
+  text-align: left;
+  white-space: normal;
+}
+
+.running-detail-fold {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.15rem 0.35rem;
+}
+
+.running-detail-fold > summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--link);
+}
+
+.running-detail-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.running-detail-body {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.running-shakhe-table td.cell-details {
+  min-width: 5.5rem;
+  white-space: normal;
+}
+
+.exclude-sunday-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.75rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--heading);
+  cursor: pointer;
+  user-select: none;
+}
+
+.exclude-sunday-line input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+#varadi-placeholder-view .username {
+  margin-top: 0.75rem;
 }
 
 .table-wrap {
@@ -1599,7 +1776,10 @@ h1.report-title {
 #nagara-list-table {
   width: 100%;
   border-collapse: collapse;
+  border: 1px solid #8a97ab;
+  font-family: var(--font-display);
   font-size: 0.78rem;
+  background: var(--surface);
 }
 
 #nagara-list-table {
@@ -1637,18 +1817,18 @@ th.num .th-stack {
 #nagara-list-table td {
   padding: 0.38rem 0.32rem;
   text-align: left;
-  border-bottom: 1px solid var(--border);
+  border: 1px solid #8a97ab;
   vertical-align: middle;
   line-height: 1.3;
 }
 
 #nagara-report-table th,
 #nagara-list-table th {
-  color: var(--muted);
-  font-weight: 600;
+  color: var(--ink);
+  font-weight: 700;
   position: sticky;
   top: 0;
-  background: var(--surface);
+  background: #eef3f9;
   white-space: normal;
   vertical-align: bottom;
 }
