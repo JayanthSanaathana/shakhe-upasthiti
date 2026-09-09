@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=20260910j">
+  <link rel="stylesheet" href="/styles.css?v=20260910o">
 </head>
 
 <body>
@@ -41,8 +41,8 @@
         <span class="action-en">Shakhe Varadi</span>
       </button>
       <button type="button" class="action" id="open-nagara-login-btn">
-        <span class="action-kn">ವರದಿ ಲಾಗಿನ್</span>
-        <span class="action-en">Varadi login</span>
+        <span class="action-kn">ವರದಿಗಳು</span>
+        <span class="action-en">Varadigalu</span>
       </button>
     </div>
     <div class="action-grid nagara-only hidden" id="nagara-actions">
@@ -77,20 +77,20 @@
         <span class="title-en">Shakhe Upasthiti</span>
       </p>
     </div>
-    <h1 id="varadi-gate-title" class="page-title">
-      <span class="title-kn">ವರದಿ ಲಾಗಿನ್</span>
-      <span class="title-en">Varadi login</span>
+    <h1 id="varadi-gate-title" class="page-title varadi-gate-heading">
+      <span class="title-kn">ತಾಲ್ಲೂಕು, ಜಿಲ್ಲಾ, ವಿಭಾಗದ ಲಾಗಿನ್</span>
+      <span class="title-en">Taluk, Jilla, Vibhaga login</span>
     </h1>
     <form id="varadi-gate-form">
       <p id="varadi-gate-error" class="error hidden"></p>
       <div class="field">
         <label for="varadi-email">ಇಮೇಲ್ ವಿಳಾಸ/Email address</label>
-        <input type="email" id="varadi-email" maxlength="120" autocomplete="username"
+        <input type="email" id="varadi-email" maxlength="100" autocomplete="username"
           placeholder="entity@sgpu.com" aria-label="ಇಮೇಲ್ ವಿಳಾಸ/Email address" required>
       </div>
       <div class="field">
         <label for="varadi-password">ಗುಪ್ತಪದ/Password</label>
-        <input type="password" id="varadi-password" maxlength="200" autocomplete="current-password"
+        <input type="password" id="varadi-password" maxlength="30" autocomplete="current-password"
           placeholder="password" aria-label="ಗುಪ್ತಪದ/Password" required>
       </div>
       <button type="submit">ಸೈನ್ ಇನ್/Sign in</button>
@@ -151,21 +151,21 @@
         <label for="shakhe-nagar">ತಾಲ್ಲೂಕು/ನಗರ/Nagara</label>
         <p class="username hierarchy-locked-label" id="locked-nagar">—</p>
         <select id="shakhe-nagar" class="hierarchy-pick" disabled>
-          <option value="">ಮೊದಲು ಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Bhag first</option>
+          <option value="">ಮೊದಲು ಜಿಲ್ಲಾ/ಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Bhag first</option>
         </select>
         <p class="field-error" data-error-for="shakhe-nagar"></p>
       </div>
       <div class="field">
-        <label for="shakhe-vasati">ವಸತಿ/Vasati</label>
+        <label for="shakhe-vasati">ವಸತಿ/ಮಂಡಲ/Vasati</label>
         <select id="shakhe-vasati" data-shakhe-sthara="Vasati" required>
           <option value="">ಆಯ್ಕೆಮಾಡಿ/Select</option>
         </select>
         <p class="field-error" data-error-for="shakhe-vasati"></p>
       </div>
       <div class="field">
-        <label for="shakhe-upavasati">ಉಪವಸತಿ/Upavasati</label>
+        <label for="shakhe-upavasati">ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati</label>
         <select id="shakhe-upavasati" data-shakhe-sthara="Upavasati" required>
-          <option value="">ಮೊದಲು ವಸತಿ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first</option>
+          <option value="">ಮೊದಲು ವಸತಿ/ಮಂಡಲ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first</option>
         </select>
         <p class="field-error" data-error-for="shakhe-upavasati"></p>
       </div>
@@ -280,7 +280,7 @@
     <div id="upavasati-exists" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="upavasati-exists-title">
       <div class="modal-backdrop" id="upavasati-exists-dismiss"></div>
       <div class="modal-box warn-box">
-        <p id="upavasati-exists-title">ಈ ಉಪವಸತಿಯಲ್ಲಿ ಶಾಖೆ ಈಗಾಗಲೇ ರಚಿಸಲಾಗಿದೆ</p>
+        <p id="upavasati-exists-title">ಈ ಗ್ರಾಮ/ಉಪವಸತಿಯಲ್ಲಿ ಶಾಖೆ ಈಗಾಗಲೇ ರಚಿಸಲಾಗಿದೆ</p>
         <p class="username">A shakhe is already created in this upavasati</p>
         <div id="upavasati-exists-details"></div>
         <button type="button" id="upavasati-exists-close">ಮುಚ್ಚಿ/Close</button>
@@ -294,13 +294,13 @@
     <p id="list-error" class="error hidden"></p>
     <div id="list-filters" class="list-filters count-row">
       <div class="field">
-        <label for="list-filter-vasati">ವಸತಿ/Vasati</label>
+        <label for="list-filter-vasati">ವಸತಿ/ಮಂಡಲ/Vasati</label>
         <select id="list-filter-vasati">
           <option value="">ಎಲ್ಲಾ/All</option>
         </select>
       </div>
       <div class="field">
-        <label for="list-filter-upavasati">ಉಪವಸತಿ/Upavasati</label>
+        <label for="list-filter-upavasati">ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati</label>
         <select id="list-filter-upavasati">
           <option value="">ಎಲ್ಲಾ/All</option>
         </select>
@@ -432,7 +432,7 @@
 
   <section id="nagara-list-view" class="card wide table-card hidden">
     <button type="button" class="back-link" id="nagara-list-back">&larr; ಹಿಂದೆ/Back</button>
-    <h1 id="nagara-list-title" class="report-title">ಉಪವಸತಿ/Upavasati</h1>
+    <h1 id="nagara-list-title" class="report-title">ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati</h1>
     <p id="nagara-list-error" class="error hidden"></p>
     <div id="nagara-list-loading" class="report-loading hidden" aria-live="polite">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
     <div id="nagara-list-body" class="table-wrap"></div>
@@ -657,6 +657,6 @@
 </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/app.js?v=20260910j"></script>
+  <script src="/app.js?v=20260910o"></script>
 </body>
 </html>

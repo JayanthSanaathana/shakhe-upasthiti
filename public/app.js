@@ -22,9 +22,9 @@ const phoneLogoutFoot = document.getElementById('phone-logout-foot');
 let currentView = homeView;
 
 const VARADI_MSG_SUPERSEDED_ON_SCREEN =
-  'ಈ ಸೆಷನ್‌ನಿಂದ ನಿರ್ಗಮಿಸಲಾಗಿದೆ (ಬೇರೆಡೆ ಲಾಗಿನ್)/Logged out of this session (signed in elsewhere)';
+  'ಈ ಸೆಷನ್ ಮುಗಿದಿದೆ (ಗರಿಷ್ಠ 5 ಸಾಧನಗಳು ಅಥವಾ ಹೊಸ ಲಾಗಿನ್)/This session ended (max 5 devices or a newer login)';
 const VARADI_MSG_SUPERSEDED_FROM_HOME =
-  'ಬೇರೆ ಸೆಷನ್‌ನಲ್ಲಿ ಲಾಗಿನ್ ಆಗಿದೆ. ಇಲ್ಲಿ ನಿರ್ಗಮಿಸಲಾಗಿದೆ — ಮತ್ತೆ ಲಾಗಿನ್ ಮಾಡಿ/Signed in on another session. Signed out here — please sign in again';
+  'ಈ ಸೆಷನ್ ಮುಗಿದಿದೆ (ಗರಿಷ್ಠ 5 ಸಾಧನಗಳು ಅಥವಾ ಹೊಸ ಲಾಗಿನ್) — ಮತ್ತೆ ಲಾಗಿನ್ ಮಾಡಿ/This session ended (max 5 devices or a newer login) — please sign in again';
 const VARADI_MSG_EXPIRED =
   'ಸೆಷನ್ ಅವಧಿ ಮುಗಿದಿದೆ — ಮತ್ತೆ ಲಾಗಿನ್ ಮಾಡಿ/Session expired — please sign in again';
 const PHONE_MSG_SUPERSEDED_ON_SCREEN = VARADI_MSG_SUPERSEDED_ON_SCREEN;
@@ -32,6 +32,16 @@ const PHONE_MSG_SUPERSEDED_FROM_HOME = VARADI_MSG_SUPERSEDED_FROM_HOME;
 const PHONE_MSG_EXPIRED = VARADI_MSG_EXPIRED;
 
 const SELECT_PLACEHOLDER = 'ಆಯ್ಕೆಮಾಡಿ/Select';
+/** Hierarchy display labels (Kannada variants / English). */
+const LABEL_BHAG = 'ಜಿಲ್ಲಾ/ಭಾಗ/Bhag';
+const LABEL_NAGARA = 'ತಾಲ್ಲೂಕು/ನಗರ/Nagara';
+const LABEL_VASATI = 'ವಸತಿ/ಮಂಡಲ/Vasati';
+const LABEL_UPAVASATI = 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati';
+const LABEL_VIBHAG = 'ವಿಭಾಗ/Vibhag';
+const WAIT_SELECT_VIBHAG = 'ಮೊದಲು ವಿಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Vibhag first';
+const WAIT_SELECT_BHAG = 'ಮೊದಲು ಜಿಲ್ಲಾ/ಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Bhag first';
+const WAIT_SELECT_NAGARA = 'ಮೊದಲು ತಾಲ್ಲೂಕು/ನಗರ ಆಯ್ಕೆಮಾಡಿ/Select a Nagara first';
+const WAIT_SELECT_VASATI = 'ಮೊದಲು ವಸತಿ/ಮಂಡಲ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first';
 const TIMING_LABEL = {
   prabhat: 'ಪ್ರಭಾತ್/Prabhat',
   sayam: 'ಸಾಯಂ/Sayam',
@@ -1423,10 +1433,10 @@ async function checkMukhashikshakShakhe(phone) {
 }
 
 const HIERARCHY_CHAIN = [
-  { sthara: 'Vibhag', id: 'shakhe-vibhag', next: 'Bhag', wait: 'ಮೊದಲು ವಿಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Vibhag first' },
-  { sthara: 'Bhag', id: 'shakhe-bhag', next: 'Nagar', wait: 'ಮೊದಲು ಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Bhag first' },
-  { sthara: 'Nagar', id: 'shakhe-nagar', next: 'Vasati', wait: 'ಮೊದಲು ನಗರ ಆಯ್ಕೆಮಾಡಿ/Select a Nagara first' },
-  { sthara: 'Vasati', id: 'shakhe-vasati', next: 'Upavasati', wait: 'ಮೊದಲು ವಸತಿ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first' },
+  { sthara: 'Vibhag', id: 'shakhe-vibhag', next: 'Bhag', wait: WAIT_SELECT_VIBHAG },
+  { sthara: 'Bhag', id: 'shakhe-bhag', next: 'Nagar', wait: WAIT_SELECT_BHAG },
+  { sthara: 'Nagar', id: 'shakhe-nagar', next: 'Vasati', wait: WAIT_SELECT_NAGARA },
+  { sthara: 'Vasati', id: 'shakhe-vasati', next: 'Upavasati', wait: WAIT_SELECT_VASATI },
   { sthara: 'Upavasati', id: 'shakhe-upavasati', next: null, wait: '' },
 ];
 
@@ -1445,13 +1455,13 @@ function resetPublicHierarchy() {
   const nagar = document.getElementById('shakhe-nagar');
   const vasati = document.getElementById('shakhe-vasati');
   const upa = document.getElementById('shakhe-upavasati');
-  fillSelect(bhag, [], 'ಮೊದಲು ವಿಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Vibhag first');
+  fillSelect(bhag, [], WAIT_SELECT_VIBHAG);
   bhag.disabled = true;
-  fillSelect(nagar, [], 'ಮೊದಲು ಭಾಗ ಆಯ್ಕೆಮಾಡಿ/Select a Bhag first');
+  fillSelect(nagar, [], WAIT_SELECT_BHAG);
   nagar.disabled = true;
-  fillSelect(vasati, [], 'ಮೊದಲು ನಗರ ಆಯ್ಕೆಮಾಡಿ/Select a Nagara first');
+  fillSelect(vasati, [], WAIT_SELECT_NAGARA);
   vasati.disabled = true;
-  fillSelect(upa, [], 'ಮೊದಲು ವಸತಿ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first');
+  fillSelect(upa, [], WAIT_SELECT_VASATI);
   upa.disabled = true;
 }
 
@@ -1539,7 +1549,7 @@ async function openForm() {
   resetBearer('karyavaha', 'karyavaha-block');
   resetBearer('palaka', 'palaka-block');
   formPlace.reset();
-  fillSelect(document.getElementById('shakhe-upavasati'), [], 'ಮೊದಲು ವಸತಿ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first');
+  fillSelect(document.getElementById('shakhe-upavasati'), [], WAIT_SELECT_VASATI);
   document.getElementById('shakhe-upavasati').disabled = true;
   setShakheStep(1);
   showScreen(formView);
@@ -1811,7 +1821,7 @@ async function openList() {
   listShakhes = data.shakhes || [];
   refreshListFilterOptions();
   if (!listShakhes.length) {
-    body.innerHTML = '<p class="username">ಈ ನಗರದಲ್ಲಿ ಶಾಖೆಗಳಿಲ್ಲ/No shakhes in this nagara yet.</p>';
+    body.innerHTML = '<p class="username">ಈ ತಾಲ್ಲೂಕು/ನಗರದಲ್ಲಿ ಶಾಖೆಗಳಿಲ್ಲ/No shakhes in this nagara yet.</p>';
     return;
   }
   paintShakheList();
@@ -1884,8 +1894,18 @@ function mapsUrl(lat, lng) {
 
 function stackedLabel(text) {
   const raw = String(text || '');
+  const last = raw.lastIndexOf('/');
+  if (last < 0) return escapeHtml(raw);
+  const right = raw.slice(last + 1);
+  const left = raw.slice(0, last);
+  // ಜಿಲ್ಲಾ/ಭಾಗ/Bhag → kn "ಜಿಲ್ಲಾ/ಭಾಗ", en "Bhag"
+  if (left.includes('/') && /^[A-Za-z][A-Za-z\s-]*$/.test(right)) {
+    return (
+      `<span class="th-stack"><span class="th-kn">${escapeHtml(left)}</span>` +
+      `<span class="th-en">${escapeHtml(right)}</span></span>`
+    );
+  }
   const i = raw.indexOf('/');
-  if (i < 0) return escapeHtml(raw);
   return (
     `<span class="th-stack"><span class="th-kn">${escapeHtml(raw.slice(0, i))}</span>` +
     `<span class="th-en">${escapeHtml(raw.slice(i + 1))}</span></span>`
@@ -1919,8 +1939,8 @@ function shakheListHeadHtml(opts) {
         'ತಿದ್ದುಪಡಿ/Edit',
       ]
     : [
-        'ವಸತಿ/Vasati',
-        'ಉಪವಸತಿ/Upavasati',
+        LABEL_VASATI,
+        LABEL_UPAVASATI,
         'ಶಾಖೆ/Shakhe',
         'ಸಮಯ/Timing',
         'ಪ್ರಕಾರ/Type',
@@ -2536,11 +2556,11 @@ function kv(label, value) {
 function shakheSummaryHtml(s) {
   return (
     kv('ಶಾಖೆ/Shakhe', s.name) +
-    kv('ವಿಭಾಗ/Vibhag', s.vibhag && s.vibhag.name) +
-    kv('ಭಾಗ/Bhag', s.bhag && s.bhag.name) +
-    kv('ನಗರ/Nagara', s.nagar && s.nagar.name) +
-    kv('ವಸತಿ/Vasati', s.vasati && s.vasati.name) +
-    kv('ಉಪವಸತಿ/Upavasati', s.upavasati && s.upavasati.name) +
+    kv(LABEL_VIBHAG, s.vibhag && s.vibhag.name) +
+    kv(LABEL_BHAG, s.bhag && s.bhag.name) +
+    kv(LABEL_NAGARA, s.nagar && s.nagar.name) +
+    kv(LABEL_VASATI, s.vasati && s.vasati.name) +
+    kv(LABEL_UPAVASATI, s.upavasati && s.upavasati.name) +
     kv('ಸಮಯ ವಿಭಾಗ/Timing', TIMING_LABEL[s.timing] || s.timing) +
     kv('ಸಮಯ/Time', s.time) +
     kv('ಪ್ರಕಾರ/Type', TYPE_LABEL[s.shakheType] || s.shakheType) +
@@ -2860,19 +2880,19 @@ function reportPlaceLabel(level, name) {
       : level === 'vibhag'
         ? 'ವಿಭಾಗ'
         : level === 'bhag'
-          ? 'ಭಾಗ'
+          ? 'ಜಿಲ್ಲಾ/ಭಾಗ'
           : level === 'nagara'
-            ? 'ನಗರ'
+            ? 'ತಾಲ್ಲೂಕು/ನಗರ'
             : '';
   const text = String(name || '').trim();
   return text ? `${prefix} - ${text}` : prefix;
 }
 
 function reportFirstColLabel(level) {
-  if (level === 'prant') return 'ವಿಭಾಗ/Vibhag';
-  if (level === 'vibhag') return 'ಭಾಗ/Bhag';
-  if (level === 'bhag') return 'ನಗರ/Nagar';
-  return 'ವಸತಿ/ಮಂಡಲ/Vasati';
+  if (level === 'prant') return LABEL_VIBHAG;
+  if (level === 'vibhag') return LABEL_BHAG;
+  if (level === 'bhag') return LABEL_NAGARA;
+  return LABEL_VASATI;
 }
 
 function reportRowChild(row) {
@@ -2898,7 +2918,7 @@ function withScopedNagarId(params) {
 function requireScopedNagarOrBounce(errorEl) {
   if (scopedNagarId()) return true;
   if (errorEl) {
-    errorEl.textContent = 'ನಗರ ವರದಿಯಿಂದ ತೆರೆಯಿರಿ/Open this from a Nagara report';
+    errorEl.textContent = 'ತಾಲ್ಲೂಕು/ನಗರ ವರದಿಯಿಂದ ತೆರೆಯಿರಿ/Open this from a Nagara report';
     errorEl.classList.remove('hidden');
   }
   openNagaraShakheVaradi({ useCache: true, kind: nagaraReportKind });
@@ -3109,7 +3129,7 @@ function paintNagaraShakheVaradi(data) {
   const level = (data && data.level) || reportScopeLevel || 'nagara';
   const isLeaf = level === 'nagara';
   const nextLevel = NEXT_VARADI_LEVEL[level] || null;
-  const emptyMsg = isLeaf ? 'ವಸತಿಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
+  const emptyMsg = isLeaf ? 'ವಸತಿ/ಮಂಡಲಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
   const dayCount = Math.max(0, Number((data && data.dayCount) || nagaraVaradiRangeDays().count || 0));
   const daysOpen = Boolean(shakheDaysColumnsOpen);
   const daysColspan = daysOpen ? dayCount + 1 : 1;
@@ -3138,7 +3158,7 @@ function paintNagaraShakheVaradi(data) {
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu')}</th>` +
     daysGroupHead +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯದ ಶಾಖೆ/Nadayada Shakhe')}</th>` +
-    `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Sarisumaru')}</th>` +
+    `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Average')}</th>` +
     `<th class="num group-head" colspan="2">${stackedLabel('ಒಟ್ಟು ಸಂಪರ್ಕ/Ottu samparka')}</th>` +
     `</tr>` +
     `<tr>` +
@@ -3345,7 +3365,7 @@ function paintNagaraProgramVaradi(data) {
   const level = (data && data.level) || reportScopeLevel || 'nagara';
   const isLeaf = level === 'nagara';
   const nextLevel = NEXT_VARADI_LEVEL[level] || null;
-  const emptyMsg = isLeaf ? 'ವಸತಿಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
+  const emptyMsg = isLeaf ? 'ವಸತಿ/ಮಂಡಲಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
   const itemHeads = catalog
     .map((item) => `<th class="num">${stackedLabel(`${item.kn}/${item.en}`)}</th>`)
     .join('');
@@ -3519,11 +3539,11 @@ function sortProgramSplitShakhes(shakhes) {
 }
 
 const PROGRAM_SPLIT_HIER_FIELDS = [
-  { key: 'vibhag', label: 'ವಿಭಾಗ/Vibhag' },
-  { key: 'bhag', label: 'ಭಾಗ/Bhag' },
-  { key: 'nagar', label: 'ನಗರ/Nagar' },
-  { key: 'vasati', label: 'ವಸತಿ/Vasati' },
-  { key: 'upavasati', label: 'ಉಪವಸತಿ/Upavasati' },
+  { key: 'vibhag', label: LABEL_VIBHAG },
+  { key: 'bhag', label: LABEL_BHAG },
+  { key: 'nagar', label: LABEL_NAGARA },
+  { key: 'vasati', label: LABEL_VASATI },
+  { key: 'upavasati', label: LABEL_UPAVASATI },
 ];
 
 /** Build rowspan map for consecutive equal hierarchy values (by id). */
@@ -4084,7 +4104,7 @@ async function openShakheStatusSplit(opts) {
   }
 }
 
-/** Metrics cells after hierarchy: Shakhe | Days ran | Sarisumaru | Ottu samparka. */
+/** Metrics cells after hierarchy: Shakhe | Days ran | Average (ಸರಾಸರಿ) | Ottu samparka. */
 function shakheRunningMetricsCells(s) {
   const cell = (v) => (v == null ? '—' : String(v));
   const avgCell = (v) => formatAvg(v);
@@ -4131,7 +4151,7 @@ function shakheDaysRanDetailRowHtml(s, visibleFields) {
 function shakheDaysRanListTotals(shakhes) {
   const items = shakhes || [];
   const cell = (v) => (v == null ? '—' : String(v));
-  // Footer Sarisumaru = sum of each row’s displayed averages (same rule as bhag totals).
+  // Footer Average (ಸರಾಸರಿ) = sum of each row’s displayed averages (same rule as bhag totals).
   const avgCell = (v) => (v == null || Number.isNaN(Number(v)) ? '—' : String(Number(v)));
   let daysRanSum = 0;
   let daysSelected = nagaraVaradiRangeDays().count || 0;
@@ -4216,7 +4236,7 @@ function paintShakheDaysRanDetailTable(shakhes) {
     hierHeads +
     `<th rowspan="2">${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆದ ದಿನಗಳು/Days ran')}</th>` +
-    `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Sarisumaru')}</th>` +
+    `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Average')}</th>` +
     `<th class="num group-head" colspan="2">${stackedLabel('ಒಟ್ಟು ಸಂಪರ್ಕ/Ottu samparka')}</th>` +
     `</tr><tr>` +
     `<th class="num">${stackedLabel('ತರುಣ/Taruna')}</th>` +
@@ -4291,10 +4311,10 @@ async function openShakheDaysRanList(opts) {
       const head =
         `<table class="varadi-table shakhe-list-table running-shakhe-table"><thead>` +
         `<tr>` +
-        `<th rowspan="2">${stackedLabel('ಉಪವಸತಿ/Upavasati')}</th>` +
+        `<th rowspan="2">${stackedLabel(LABEL_UPAVASATI)}</th>` +
         `<th rowspan="2">${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
         `<th class="num" rowspan="2">${stackedLabel('ನಡೆದ ದಿನಗಳು/Days ran')}</th>` +
-        `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Sarisumaru')}</th>` +
+        `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Average')}</th>` +
         `<th class="num group-head" colspan="2">${stackedLabel('ಒಟ್ಟು ಸಂಪರ್ಕ/Ottu samparka')}</th>` +
         `</tr><tr>` +
         `<th class="num">${stackedLabel('ತರುಣ/Taruna')}</th>` +
@@ -4539,7 +4559,7 @@ async function openNagaraProgramItemHits(vasatiId, titleName, itemId, itemLabel)
       `<div class="table-wrap">` +
       `<table class="varadi-table program-hit-table program-hit-flat">` +
       `<thead><tr>` +
-      `<th>${stackedLabel('ಉಪವಸತಿ/Upavasati')}</th>` +
+      `<th>${stackedLabel(LABEL_UPAVASATI)}</th>` +
       `<th>${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
       `<th>${stackedLabel('ಪ್ರಕಾರ/Type')}</th>` +
       `<th>${stackedLabel('ಸಮಯ/Timing')}</th>` +
@@ -4984,10 +5004,10 @@ async function openNagaraShakheDrilldown(vasatiId, titleName, filter) {
       const head =
         `<table class="varadi-table shakhe-list-table running-shakhe-table"><thead>` +
         `<tr>` +
-        `<th rowspan="2">${stackedLabel('ಉಪವಸತಿ/Upavasati')}</th>` +
+        `<th rowspan="2">${stackedLabel(LABEL_UPAVASATI)}</th>` +
         `<th rowspan="2">${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
         `<th class="num" rowspan="2">${stackedLabel('ನಡೆದ ದಿನಗಳು/Days ran')}</th>` +
-        `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Sarisumaru')}</th>` +
+        `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Average')}</th>` +
         `<th class="num group-head" colspan="2">${stackedLabel('ಒಟ್ಟು ಸಂಪರ್ಕ/Ottu samparka')}</th>` +
         `</tr>` +
         `<tr>` +
@@ -5090,7 +5110,7 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
   const body = document.getElementById('nagara-list-body');
   errorEl.classList.add('hidden');
   body.innerHTML = '';
-  document.getElementById('nagara-list-title').textContent = `ಉಪವಸತಿ/Upavasati — ${titleName || ''}`;
+  document.getElementById('nagara-list-title').textContent = `${LABEL_UPAVASATI} — ${titleName || ''}`;
   showScreen(nagaraListView);
   setNagaraListLoading(true);
   try {
@@ -5102,7 +5122,7 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
     const data = await res.json().catch(() => ({}));
     if (bounceIfVaradiAuth(res, data)) return;
     if (!res.ok) {
-      errorEl.textContent = data.error || 'ಉಪವಸತಿ ಲೋಡ್ ಆಗಲಿಲ್ಲ/Could not load upavasatis';
+      errorEl.textContent = data.error || 'ಗ್ರಾಮ/ಉಪವಸತಿ ಲೋಡ್ ಆಗಲಿಲ್ಲ/Could not load upavasatis';
       errorEl.classList.remove('hidden');
       return;
     }
@@ -5111,7 +5131,7 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
     const withoutShakhe = items.filter((item) => !item.hasShakhe);
     const summaryHtml =
       `<div class="list-summary">` +
-      `<div class="list-summary-item"><span class="list-summary-label">ಒಟ್ಟು ಉಪವಸತಿ/Total</span>` +
+      `<div class="list-summary-item"><span class="list-summary-label">ಒಟ್ಟು ಗ್ರಾಮ/ಉಪವಸತಿ/Total</span>` +
       `<strong class="list-summary-value">${items.length}</strong></div>` +
       `<div class="list-summary-item"><span class="list-summary-label">ಶಾಖೆಯೊಂದಿಗೆ/With shakhe</span>` +
       `<strong class="list-summary-value">${withShakhe.length}</strong></div>` +
@@ -5132,10 +5152,10 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
     }
 
     function withoutShakheTable(rows) {
-      if (!rows.length) return '<p class="view-empty">ಉಪವಸತಿಗಳಿಲ್ಲ/No upavasatis</p>';
+      if (!rows.length) return '<p class="view-empty">ಗ್ರಾಮ/ಉಪವಸತಿಗಳಿಲ್ಲ/No upavasatis</p>';
       const head =
         `<table class="upa-simple-table"><thead><tr>` +
-        `<th>${stackedLabel('ಉಪವಸತಿ/Upavasati')}</th>` +
+        `<th>${stackedLabel(LABEL_UPAVASATI)}</th>` +
         `</tr></thead><tbody>`;
       const trs = rows.map((item) => `<tr><td>${escapeHtml(item.name)}</td></tr>`).join('');
       return `${head}${trs}</tbody></table>`;
@@ -5196,12 +5216,12 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
     body.innerHTML =
       summaryHtml +
       dropdownSection(
-        'ಉಪವಸತಿ ಶಾಖೆಯೊಂದಿಗೆ/Upavasati with shakhe',
+        'ಗ್ರಾಮ/ಉಪವಸತಿ ಶಾಖೆಯೊಂದಿಗೆ/Upavasati with shakhe',
         withShakhe.length,
         withShakheGroupedHtml(withShakhe)
       ) +
       dropdownSection(
-        'ಉಪವಸತಿ ಶಾಖೆ ರಹಿತ/Upavasati without shakhe',
+        'ಗ್ರಾಮ/ಉಪವಸತಿ ಶಾಖೆ ರಹಿತ/Upavasati without shakhe',
         withoutShakhe.length,
         withoutShakheTable(withoutShakhe)
       );
