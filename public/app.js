@@ -3546,6 +3546,29 @@ const PROGRAM_SPLIT_HIER_FIELDS = [
   { key: 'upavasati', label: LABEL_UPAVASATI },
 ];
 
+/**
+ * Hierarchy columns start at the child of the current report/login level
+ * (prant→vibhag…, vibhag→bhag…, bhag→nagar…, nagara→vasati…).
+ */
+function hierarchyKeysForScopeLevel(level) {
+  const lv =
+    level ||
+    (nagaraListContext && nagaraListContext.entityLevel) ||
+    reportScopeLevel ||
+    sessionLevel ||
+    'nagara';
+  if (lv === 'prant') return ['vibhag', 'bhag', 'nagar', 'vasati', 'upavasati'];
+  if (lv === 'vibhag') return ['bhag', 'nagar', 'vasati', 'upavasati'];
+  if (lv === 'bhag') return ['nagar', 'vasati', 'upavasati'];
+  return ['vasati', 'upavasati'];
+}
+
+function programSplitBaseFieldIndex(level) {
+  const keys = hierarchyKeysForScopeLevel(level);
+  const idx = PROGRAM_SPLIT_HIER_FIELDS.findIndex((f) => f.key === keys[0]);
+  return idx < 0 ? 0 : idx;
+}
+
 /** Build rowspan map for consecutive equal hierarchy values (by id). */
 function programSplitRowspans(rows, fields) {
   const spans = fields.map(() => new Array(rows.length).fill(0));
@@ -3660,14 +3683,15 @@ function filterProgramSplitShakhes(shakhes, filter) {
   return list;
 }
 
-function programSplitVisibleFields(path) {
+function programSplitVisibleFields(path, level) {
+  const base = programSplitBaseFieldIndex(level);
   const steps = path || [];
-  if (!steps.length) return PROGRAM_SPLIT_HIER_FIELDS.slice();
+  if (!steps.length) return PROGRAM_SPLIT_HIER_FIELDS.slice(base);
   const last = steps[steps.length - 1];
   const idx = PROGRAM_SPLIT_HIER_FIELDS.findIndex((f) => f.key === last.key);
-  if (idx < 0) return PROGRAM_SPLIT_HIER_FIELDS.slice();
-  // Columns before the clicked level are hidden; clicked level and below remain.
-  return PROGRAM_SPLIT_HIER_FIELDS.slice(idx);
+  if (idx < 0) return PROGRAM_SPLIT_HIER_FIELDS.slice(base);
+  // Hide columns above the drilled level; never show above the login/report scope.
+  return PROGRAM_SPLIT_HIER_FIELDS.slice(Math.max(idx, base));
 }
 
 function programSplitPathHtml(path) {
@@ -3701,7 +3725,7 @@ function paintProgramItemShakheSplitBody() {
   const yesCount = scoped.filter((s) => s && s.hasItem).length;
   const noCount = scoped.length - yesCount;
   const filtered = filterProgramSplitShakhes(scoped, filter);
-  const visibleFields = programSplitVisibleFields(path);
+  const visibleFields = programSplitVisibleFields(path, nagaraListContext.entityLevel);
   const filterHtml =
     `<div class="list-filters program-split-filters">` +
     `<div class="field">` +
@@ -3878,11 +3902,12 @@ function bindShakheSplitPathClicks(body, repaint) {
 }
 
 function shakheHierarchyVisibleFields(shakhes, keys) {
-  const allowed = keys || ['vibhag', 'bhag', 'nagar'];
+  const allowed = keys || hierarchyKeysForScopeLevel();
   const hierFields = PROGRAM_SPLIT_HIER_FIELDS.filter((f) => allowed.includes(f.key));
   const visibleFields = hierFields.slice();
   const list = shakhes || [];
-  while (visibleFields.length > 0 && list.length) {
+  // Keep at least the first in-scope column (e.g. Vasati for nagara) even if identical.
+  while (visibleFields.length > 1 && list.length) {
     const key = visibleFields[0].key;
     const first = programSplitEntityName(list[0] && list[0][key]);
     if (list.every((s) => programSplitEntityName(s[key]) === first)) visibleFields.shift();
@@ -3924,14 +3949,11 @@ function shakhesToHierDisplayRows(shakhes, fields) {
 
 function paintShakheYojitaListTable(shakhes) {
   const sorted = sortProgramSplitShakhes(shakhes);
-  // Group Bhag/Nagar/Vasati/Upavasati with rowspan; only drop leading levels that are identical.
-  const visibleFields = shakheHierarchyVisibleFields(sorted, [
-    'vibhag',
-    'bhag',
-    'nagar',
-    'vasati',
-    'upavasati',
-  ]);
+  // Start at login/report child level; may drop further identical leading columns.
+  const visibleFields = shakheHierarchyVisibleFields(
+    sorted,
+    hierarchyKeysForScopeLevel(nagaraListContext && nagaraListContext.entityLevel)
+  );
   const fieldKeys = visibleFields.map((f) => f.key);
   const display = shakhesToHierDisplayRows(sorted, fieldKeys);
   const spans = programSplitRowspans(display, fieldKeys);
@@ -4194,8 +4216,11 @@ function shakheDaysRanListTotals(shakhes) {
 
 function paintShakheDaysRanDetailTable(shakhes) {
   const sorted = sortProgramSplitShakhes(shakhes);
-  const visibleFields = PROGRAM_SPLIT_HIER_FIELDS.slice();
-  // Drop leading hierarchy columns that are identical for every row; keep ≥1 when possible.
+  const visibleFields = programSplitVisibleFields(
+    (nagaraListContext && nagaraListContext.splitPath) || [],
+    nagaraListContext && nagaraListContext.entityLevel
+  ).slice();
+  // Drop further identical leading columns within the in-scope set; keep ≥1.
   while (visibleFields.length > 1) {
     const key = visibleFields[0].key;
     const first = programSplitEntityName(sorted[0] && sorted[0][key]);
