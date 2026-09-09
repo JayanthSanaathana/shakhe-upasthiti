@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=20260908n">
+  <link rel="stylesheet" href="/styles.css?v=20260910j">
 </head>
 
 <body>
@@ -41,8 +41,8 @@
         <span class="action-en">Shakhe Varadi</span>
       </button>
       <button type="button" class="action" id="open-nagara-login-btn">
-        <span class="action-kn">ನಗರ ಲಾಗಿನ್</span>
-        <span class="action-en">Nagara login</span>
+        <span class="action-kn">ವರದಿ ಲಾಗಿನ್</span>
+        <span class="action-en">Varadi login</span>
       </button>
     </div>
     <div class="action-grid nagara-only hidden" id="nagara-actions">
@@ -78,8 +78,8 @@
       </p>
     </div>
     <h1 id="varadi-gate-title" class="page-title">
-      <span class="title-kn">ನಗರ ಲಾಗಿನ್</span>
-      <span class="title-en">Nagara login</span>
+      <span class="title-kn">ವರದಿ ಲಾಗಿನ್</span>
+      <span class="title-en">Varadi login</span>
     </h1>
     <form id="varadi-gate-form">
       <p id="varadi-gate-error" class="error hidden"></p>
@@ -106,8 +106,8 @@
       </p>
     </div>
     <h1 class="page-title">
-      <span class="title-kn">ನಗರ ಆಯ್ಕೆ</span>
-      <span class="title-en">Select Nagara</span>
+      <span class="title-kn">ಘಟಕ ಆಯ್ಕೆ</span>
+      <span class="title-en">Select entity</span>
     </h1>
     <p id="varadi-choice-error" class="error hidden"></p>
     <div id="varadi-choice-list" class="action-grid"></div>
@@ -171,7 +171,7 @@
       </div>
       <div class="field">
         <label for="shakhe-name">ಶಾಖೆ ಹೆಸರು/Shakhe name</label>
-        <input type="text" id="shakhe-name" maxlength="40" required>
+        <input type="text" id="shakhe-name" maxlength="60" required>
         <p class="field-error" data-error-for="shakhe-name"></p>
       </div>
       <div class="field">
@@ -238,7 +238,7 @@
         <legend>ಸ್ಥಳ/Sthala</legend>
         <div class="field">
           <label for="shakhe-stana-name">ಸ್ಥಳದ ಹೆಸರು/Sthala name</label>
-          <input type="text" id="shakhe-stana-name" minlength="5" maxlength="15" required>
+          <input type="text" id="shakhe-stana-name" minlength="5" maxlength="60" required>
           <p class="field-error" data-error-for="shakhe-stana-name"></p>
         </div>
         <div class="field">
@@ -372,7 +372,7 @@
         <legend>ಸ್ಥಾನ/Sthana</legend>
         <div class="field">
           <label for="setup-stana-name">ಸ್ಥಾನದ ಹೆಸರು/Sthana name</label>
-          <input type="text" id="setup-stana-name" minlength="5" maxlength="15" required>
+          <input type="text" id="setup-stana-name" minlength="5" maxlength="60" required>
           <p class="field-error" data-error-for="setup-stana-name"></p>
         </div>
         <div class="field">
@@ -515,11 +515,13 @@
       <div class="count-row">
         <div class="field">
           <label for="samparka-manegalu">ಒಟ್ಟು ಸಂಪರ್ಕಿತ ಮನೆಗಳು/Ottu samparkitha manegalu</label>
-          <input type="text" id="samparka-manegalu" inputmode="numeric" maxlength="5">
+          <input type="text" id="samparka-manegalu" inputmode="numeric" maxlength="4">
+          <p class="field-error" data-error-for="samparka-manegalu"></p>
         </div>
         <div class="field">
           <label for="samparka-vyaktigalu">ಒಟ್ಟು ಸಂಪರ್ಕಿತ ವ್ಯಕ್ತಿಗಳು/Ottu samparkita vyaktigalu</label>
-          <input type="text" id="samparka-vyaktigalu" inputmode="numeric" maxlength="5">
+          <input type="text" id="samparka-vyaktigalu" inputmode="numeric" maxlength="4">
+          <p class="field-error" data-error-for="samparka-vyaktigalu"></p>
         </div>
       </div>
       <p id="samparka-error" class="error hidden"></p>
@@ -539,20 +541,24 @@
       <div class="count-row">
         <div class="field">
           <label for="count-taruna">ತರುಣ/Taruna</label>
-          <input type="text" id="count-taruna" inputmode="numeric" maxlength="5">
+          <input type="text" id="count-taruna" inputmode="numeric" maxlength="4">
+          <p class="field-error" data-error-for="count-taruna"></p>
         </div>
         <div class="field">
           <label for="count-balaka">ಬಾಲಕ/Balaka</label>
-          <input type="text" id="count-balaka" inputmode="numeric" maxlength="5">
+          <input type="text" id="count-balaka" inputmode="numeric" maxlength="4">
+          <p class="field-error" data-error-for="count-balaka"></p>
         </div>
         <div class="field">
           <label for="count-shishu">ಶಿಶು/Shishu</label>
-          <input type="text" id="count-shishu" inputmode="numeric" maxlength="5">
+          <input type="text" id="count-shishu" inputmode="numeric" maxlength="4">
+          <p class="field-error" data-error-for="count-shishu"></p>
         </div>
         <div class="field">
           <label for="count-mata">ಮಾತಾ-ಭಗಿನಿ/Mata Bhagini</label>
-          <input type="text" id="count-mata" inputmode="numeric" maxlength="5">
+          <input type="text" id="count-mata" inputmode="numeric" maxlength="4">
           <p class="field-hint">(ವಿಶೇಷ ಸಂದರ್ಭಗಳಲ್ಲಿ/vishesha Sandarbhagallai)</p>
+          <p class="field-error" data-error-for="count-mata"></p>
         </div>
       </div>
       <p class="total-line">ಒಟ್ಟು/Total <strong id="count-total">0</strong></p>
@@ -568,11 +574,13 @@
       <div class="count-row">
         <div class="field">
           <label for="count-manegalu">ಒಟ್ಟು ಸಂಪರ್ಕಿತ ಮನೆಗಳು/Ottu samparkitha manegalu</label>
-          <input type="text" id="count-manegalu" inputmode="numeric" maxlength="5">
+          <input type="text" id="count-manegalu" inputmode="numeric" maxlength="4">
+          <p class="field-error" data-error-for="count-manegalu"></p>
         </div>
         <div class="field">
           <label for="count-vyaktigalu">ಒಟ್ಟು ಸಂಪರ್ಕಿತ ವ್ಯಕ್ತಿಗಳು/Ottu samparkita vyaktigalu</label>
-          <input type="text" id="count-vyaktigalu" inputmode="numeric" maxlength="5">
+          <input type="text" id="count-vyaktigalu" inputmode="numeric" maxlength="4">
+          <p class="field-error" data-error-for="count-vyaktigalu"></p>
         </div>
       </div>
       </div>
@@ -649,6 +657,6 @@
 </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/app.js?v=20260908n"></script>
+  <script src="/app.js?v=20260910j"></script>
 </body>
 </html>

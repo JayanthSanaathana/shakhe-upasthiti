@@ -33,6 +33,16 @@ const shakheSchema = new mongoose.Schema({
     lng: { type: Number, default: null, min: -180, max: 180 },
   },
   setupComplete: { type: Boolean, default: false },
+  /** Report hide windows: [from, to). to=null means still hidden. ISO YYYY-MM-DD. */
+  reportHideIntervals: {
+    type: [
+      {
+        from: { type: String, required: true },
+        to: { type: String, default: null },
+      },
+    ],
+    default: [],
+  },
   createdAt: { type: Date, default: Date.now },
   createdIp: { type: String, default: null, maxlength: 64 },
   updatedAt: { type: Date, default: Date.now },

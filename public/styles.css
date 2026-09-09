@@ -1339,6 +1339,28 @@ h1.report-title {
   color: var(--link);
 }
 
+#nagara-list-body .program-split-summary {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+#nagara-list-body .program-split-summary .list-summary-item {
+  justify-content: flex-start;
+  gap: 0.55rem;
+  width: auto;
+  max-width: 100%;
+}
+
+#nagara-list-body .program-split-summary .list-summary-label {
+  flex: 0 1 auto;
+}
+
+#nagara-list-body .program-split-summary .list-summary-value {
+  flex: 0 0 auto;
+}
+
 .list-dropdown {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1459,6 +1481,69 @@ h1.report-title {
   background: color-mix(in srgb, var(--bg) 70%, var(--surface));
 }
 
+#nagara-report-table th.days-ran-group-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+#nagara-report-table th.days-ran-group-collapsed {
+  width: 2.1rem;
+  min-width: 2.1rem;
+  padding: 0.25rem;
+  vertical-align: middle;
+  z-index: 4;
+}
+
+#nagara-report-table .days-ran-head-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+#nagara-report-table .days-ran-group-title {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+#nagara-report-table button.days-ran-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.45rem;
+  height: 1.45rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: #fff;
+  color: var(--heading);
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  position: relative;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+#nagara-report-table button.days-ran-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#nagara-report-table td.days-ran-placeholder {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 #nagara-report-table th.group-head {
   text-align: center;
   border: 1px solid #8a97ab;
@@ -1554,6 +1639,143 @@ h1.report-title {
 #nagara-list-body .program-check-table td.program-check-yes {
   color: var(--accent);
   font-weight: 800;
+}
+
+#nagara-list-body .program-check-yes {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+#nagara-list-body .program-check-no {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+#nagara-list-body .program-split-filters {
+  display: grid;
+  grid-template-columns: minmax(12rem, 18rem);
+  gap: 0.45rem;
+  margin: 0 0 0.65rem;
+}
+
+#nagara-list-body .program-split-filters .field {
+  margin: 0;
+}
+
+#nagara-list-body .program-split-filters label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--heading);
+}
+
+#nagara-list-body .program-split-path-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+  margin: 0 0 0.55rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+#nagara-list-body .program-split-path-sep {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+#nagara-list-body .program-split-flat-table td.cell-group button.program-split-drill {
+  font-weight: 700;
+  text-align: left;
+  white-space: normal;
+}
+
+#nagara-list-body .program-split-flat-table {
+  width: max-content;
+  min-width: 100%;
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.8rem;
+  border-collapse: collapse;
+}
+
+#nagara-list-body .program-split-flat-table th,
+#nagara-list-body .program-split-flat-table td {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#nagara-list-body .program-split-flat-table th {
+  font-weight: 800;
+  background: color-mix(in srgb, var(--bg) 70%, #fff);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+#nagara-list-body .program-split-flat-table th.num,
+#nagara-list-body .program-split-flat-table td.num {
+  text-align: center;
+}
+
+#nagara-list-body .program-split-flat-table td.cell-group {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--bg) 55%, #fff);
+  white-space: normal;
+  min-width: 5.5rem;
+  max-width: 9rem;
+}
+
+#nagara-list-body .program-split-flat-table td.cell-name {
+  font-weight: 700;
+  white-space: normal;
+  min-width: 7rem;
+}
+
+#nagara-list-body .program-hit-table {
+  width: 100%;
+  margin: 0.2rem 0 0.45rem;
+  font-size: 0.78rem;
+}
+
+#nagara-list-body .program-hit-flat {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+#nagara-list-body .program-hit-flat th,
+#nagara-list-body .program-hit-flat td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+#nagara-list-body .program-hit-flat th {
+  font-weight: 800;
+  background: color-mix(in srgb, var(--bg) 70%, #fff);
+}
+
+#nagara-list-body .program-hit-flat td.cell-name {
+  font-weight: 700;
+  white-space: normal;
+  min-width: 7rem;
+}
+
+#nagara-list-body .program-hit-flat td.cell-details {
+  white-space: normal;
+  min-width: 8rem;
+}
+
+#nagara-list-body .program-hit-extra {
+  margin: 0.12rem 0;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 #nagara-report-table th .th-stack {

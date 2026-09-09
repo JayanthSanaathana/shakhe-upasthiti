@@ -167,12 +167,12 @@ app.post('/api/varadi/login', asyncRoute(async (req, res) => {
     return res.status(result.status || 401).json({ error: result.error });
   }
   if (result.needsChoice) {
-    const nagaraChoices = (result.choices || []).filter((c) => c.level === 'nagara');
-    if (!nagaraChoices.length) {
-      return res.status(403).json({ error: 'No Nagara access for this account' });
+    const choices = result.choices || [];
+    if (!choices.length) {
+      return res.status(403).json({ error: 'No Varadi access for this account' });
     }
-    if (nagaraChoices.length === 1) {
-      req.body.entityId = nagaraChoices[0].entityId;
+    if (choices.length === 1) {
+      req.body.entityId = choices[0].entityId;
       const picked = await varadiAuth.selectScope(req);
       if (picked.error) {
         return res.status(picked.status || 401).json({ error: picked.error });
@@ -195,12 +195,9 @@ app.post('/api/varadi/login', asyncRoute(async (req, res) => {
     return res.json({
       ok: true,
       needsChoice: true,
-      choices: nagaraChoices,
+      choices,
       expiresIn: varadiAuth.SESSION_MS,
     });
-  }
-  if (result.level !== 'nagara') {
-    return res.status(403).json({ error: 'No Nagara access for this account' });
   }
   varadiAuth.setSessionCookie(req, res, result.token);
   await writeAudit(req, 'varadi.login', {
@@ -221,9 +218,6 @@ app.post('/api/varadi/select', asyncRoute(async (req, res) => {
   const result = await varadiAuth.selectScope(req);
   if (result.error) {
     return res.status(result.status || 401).json({ error: result.error });
-  }
-  if (result.level !== 'nagara') {
-    return res.status(403).json({ error: 'No Nagara access for this account' });
   }
   varadiAuth.setSessionCookie(req, res, result.token);
   await writeAudit(req, 'varadi.login', {
@@ -331,15 +325,75 @@ app.get('/api/shakhe', varadiAuth.requireSession, limitRead, asyncRoute(async (r
   res.json(result);
 }));
 
-app.get('/api/nagara/shakhe-varadi', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
-  const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
+async function resolveScopedNagarId(req, res) {
+  const session = req.varadiSession || (await varadiAuth.loadSession(req));
+  if (!session) {
+    res.status(401).json({ error: 'Login required' });
+    return null;
   }
+  req.varadiSession = session;
+  const requested = scalar(req.query.nagarId) || scalar(req.query.entityId);
+  const nagarId = requested || (session.level === 'nagara' ? session.entityId : '');
+  if (!isObjectId(nagarId)) {
+    res.status(400).json({ error: 'Nagara is required' });
+    return null;
+  }
+  if (!(await varadiAuth.canAccessEntity(session, nagarId))) {
+    res.status(403).json({ error: 'Not allowed for this entity' });
+    return null;
+  }
+  return nagarId;
+}
+
+/** Prefer explicit nagarId; if only shakheId is given (prant/vibhag/bhag drills), resolve nagar from the shakhe. */
+async function resolveNagarIdForShakheList(req, res) {
+  const session = req.varadiSession || (await varadiAuth.loadSession(req));
+  if (!session) {
+    res.status(401).json({ error: 'Login required' });
+    return null;
+  }
+  req.varadiSession = session;
+  const requested = scalar(req.query.nagarId) || scalar(req.query.entityId);
+  if (isObjectId(requested)) {
+    if (!(await varadiAuth.canAccessEntity(session, requested))) {
+      res.status(403).json({ error: 'Not allowed for this entity' });
+      return null;
+    }
+    return requested;
+  }
+  if (session.level === 'nagara' && isObjectId(session.entityId)) {
+    return session.entityId;
+  }
+  const shakheId = scalar(req.query.shakheId);
+  if (isObjectId(shakheId)) {
+    const shakhe = await Shakhe.findById(shakheId).select('nagar').lean();
+    if (!shakhe) {
+      res.status(404).json({ error: 'Shakhe not found' });
+      return null;
+    }
+    const nagarId =
+      shakhe.nagar && shakhe.nagar.entity ? String(shakhe.nagar.entity) : '';
+    if (!isObjectId(nagarId)) {
+      res.status(400).json({ error: 'Nagara is required' });
+      return null;
+    }
+    if (!(await varadiAuth.canAccessEntity(session, nagarId))) {
+      res.status(403).json({ error: 'Not allowed for this entity' });
+      return null;
+    }
+    return nagarId;
+  }
+  res.status(400).json({ error: 'Nagara is required' });
+  return null;
+}
+
+app.get('/api/nagara/shakhe-varadi', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const nagarId = await resolveScopedNagarId(req, res);
+  if (!nagarId) return;
   const excludeSunday =
     scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
   const result = await shakheVaradiReport.reportForNagara(
-    session.entityId,
+    nagarId,
     scalar(req.query.from),
     scalar(req.query.to),
     excludeSunday
@@ -349,15 +403,13 @@ app.get('/api/nagara/shakhe-varadi', varadiAuth.requireSession, limitRead, async
 }));
 
 app.get('/api/nagara/program-varadi', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
-  const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
-  }
+  const nagarId = await resolveScopedNagarId(req, res);
+  if (!nagarId) return;
   const kind = scalar(req.query.kind);
   const excludeSunday =
     scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
   const result = await shakheVaradiReport.reportProgramForNagara(
-    session.entityId,
+    nagarId,
     kind,
     scalar(req.query.from),
     scalar(req.query.to),
@@ -368,12 +420,10 @@ app.get('/api/nagara/program-varadi', varadiAuth.requireSession, limitRead, asyn
 }));
 
 app.get('/api/nagara/upavasatis', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
-  const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
-  }
+  const nagarId = await resolveScopedNagarId(req, res);
+  if (!nagarId) return;
   const result = await shakheVaradiReport.listUpavasatisForNagara({
-    nagarId: session.entityId,
+    nagarId,
     vasatiId: scalar(req.query.vasatiId) || undefined,
     filter: scalar(req.query.filter) || 'all',
   });
@@ -382,17 +432,34 @@ app.get('/api/nagara/upavasatis', varadiAuth.requireSession, limitRead, asyncRou
 }));
 
 app.get('/api/nagara/shakhes', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
-  const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
-  }
+  const nagarId = await resolveNagarIdForShakheList(req, res);
+  if (!nagarId) return;
   const excludeSunday =
     scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
   const result = await shakheVaradiReport.listShakhesForNagara({
-    nagarId: session.entityId,
+    nagarId,
     vasatiId: scalar(req.query.vasatiId) || undefined,
     shakheId: scalar(req.query.shakheId) || undefined,
     filter: scalar(req.query.filter) || 'all',
+    fromDate: scalar(req.query.from) || undefined,
+    toDate: scalar(req.query.to) || undefined,
+    excludeSunday,
+    daysRanExact: scalar(req.query.daysRanExact),
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.get('/api/nagara/program-item-hits', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const nagarId = await resolveScopedNagarId(req, res);
+  if (!nagarId) return;
+  const excludeSunday =
+    scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+  const result = await shakheVaradiReport.listProgramItemHits({
+    nagarId,
+    vasatiId: scalar(req.query.vasatiId) || undefined,
+    programKind: scalar(req.query.kind),
+    itemId: scalar(req.query.itemId),
     fromDate: scalar(req.query.from) || undefined,
     toDate: scalar(req.query.to) || undefined,
     excludeSunday,
@@ -400,6 +467,123 @@ app.get('/api/nagara/shakhes', varadiAuth.requireSession, limitRead, asyncRoute(
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   res.json(result);
 }));
+
+app.get('/api/varadi/program-item-shakhes', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  const level = scalar(req.query.level);
+  const entityId =
+    scalar(req.query.entityId) ||
+    scalar(req.query[`${level}Id`]) ||
+    (session.level === level ? session.entityId : '');
+  if (!['prant', 'vibhag', 'bhag', 'nagara'].includes(level)) {
+    return res.status(400).json({ error: 'Invalid level' });
+  }
+  if (!isObjectId(entityId)) return res.status(400).json({ error: 'Invalid entity' });
+  if (!(await varadiAuth.canAccessEntity(session, entityId))) {
+    return res.status(403).json({ error: 'Not allowed for this entity' });
+  }
+  const excludeSunday =
+    scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+  const result = await shakheVaradiReport.listProgramItemShakheSplit({
+    level,
+    entityId,
+    vasatiId: scalar(req.query.vasatiId) || undefined,
+    programKind: scalar(req.query.kind),
+    itemId: scalar(req.query.itemId),
+    fromDate: scalar(req.query.from) || undefined,
+    toDate: scalar(req.query.to) || undefined,
+    excludeSunday,
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.get('/api/varadi/shakhe-status-shakhes', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  const level = scalar(req.query.level);
+  const entityId =
+    scalar(req.query.entityId) ||
+    scalar(req.query[`${level}Id`]) ||
+    (session.level === level ? session.entityId : '');
+  if (!['prant', 'vibhag', 'bhag', 'nagara'].includes(level)) {
+    return res.status(400).json({ error: 'Invalid level' });
+  }
+  if (!isObjectId(entityId)) return res.status(400).json({ error: 'Invalid entity' });
+  if (!(await varadiAuth.canAccessEntity(session, entityId))) {
+    return res.status(403).json({ error: 'Not allowed for this entity' });
+  }
+  const excludeSunday =
+    scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+  const result = await shakheVaradiReport.listShakheStatusSplit({
+    level,
+    entityId,
+    vasatiId: scalar(req.query.vasatiId) || undefined,
+    fromDate: scalar(req.query.from) || undefined,
+    toDate: scalar(req.query.to) || undefined,
+    excludeSunday,
+    daysRanExact: scalar(req.query.daysRanExact),
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json(result);
+}));
+
+function mountParentReportRoutes(level) {
+  app.get(`/api/varadi/${level}/report`, varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+    const session = req.varadiSession;
+    const requested =
+      scalar(req.query[`${level}Id`]) ||
+      scalar(req.query.entityId) ||
+      (session.level === level ? session.entityId : '');
+    if (!isObjectId(requested)) return res.status(400).json({ error: `Invalid ${level}` });
+    if (!(await varadiAuth.canAccessEntity(session, requested))) {
+      return res.status(403).json({ error: 'Not allowed for this entity' });
+    }
+    const excludeSunday =
+      scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+    const result = await shakheVaradiReport.reportForParentLevel(
+      level,
+      requested,
+      scalar(req.query.from),
+      scalar(req.query.to),
+      excludeSunday
+    );
+    if (result.error) return res.status(result.status || 400).json({ error: result.error });
+    res.json(result);
+  }));
+
+  app.get(
+    `/api/varadi/${level}/program-varadi`,
+    varadiAuth.requireSession,
+    limitRead,
+    asyncRoute(async (req, res) => {
+      const session = req.varadiSession;
+      const requested =
+        scalar(req.query[`${level}Id`]) ||
+        scalar(req.query.entityId) ||
+        (session.level === level ? session.entityId : '');
+      if (!isObjectId(requested)) return res.status(400).json({ error: `Invalid ${level}` });
+      if (!(await varadiAuth.canAccessEntity(session, requested))) {
+        return res.status(403).json({ error: 'Not allowed for this entity' });
+      }
+      const excludeSunday =
+        scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true';
+      const result = await shakheVaradiReport.reportProgramForParentLevel(
+        level,
+        requested,
+        scalar(req.query.kind),
+        scalar(req.query.from),
+        scalar(req.query.to),
+        excludeSunday
+      );
+      if (result.error) return res.status(result.status || 400).json({ error: result.error });
+      res.json(result);
+    })
+  );
+}
+
+mountParentReportRoutes('prant');
+mountParentReportRoutes('vibhag');
+mountParentReportRoutes('bhag');
 
 app.get('/api/shakhe/by-upavasati', limitRead, asyncRoute(async (req, res) => {
   const upavasatiId = scalar(req.query.upavasatiId);
@@ -491,38 +675,84 @@ app.get('/api/shakhe/by-phone', limitSearch, asyncRoute(async (req, res) => {
 app.get('/api/shakhe/:id', limitRead, asyncRoute(async (req, res) => {
   const session = await varadiAuth.loadSession(req);
   let result;
-  if (session && session.level === 'nagara') {
-    result = await shakheService.viewForNagara(scalar(req.params.id), session.entityId);
-  } else {
-    const confirmPhone = await resolveVolunteerPhone(req, res, scalar(req.query.confirmPhone));
-    if (confirmPhone == null) return;
-    result = await shakheService.viewShakhe(scalar(req.params.id), confirmPhone);
+  if (session) {
+    req.varadiSession = session;
+    result = await shakheService.viewForVaradi(scalar(req.params.id));
+    if (result.error) return res.status(result.status || 400).json({ error: result.error });
+    if (!(await varadiAuth.canAccessEntity(session, result.nagarId))) {
+      return res.status(403).json({ error: 'Not allowed for this entity' });
+    }
+    return res.json(result.shakhe);
   }
+  const confirmPhone = await resolveVolunteerPhone(req, res, scalar(req.query.confirmPhone));
+  if (confirmPhone == null) return;
+  result = await shakheService.viewShakhe(scalar(req.params.id), confirmPhone);
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   res.json(result.shakhe);
 }));
 
-app.put('/api/shakhe/:id', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
+app.post('/api/shakhe/:id/report-hide', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
   const session = req.varadiSession;
   if (!session || session.level !== 'nagara') {
     return res.status(401).json({ error: 'Nagara login required' });
   }
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  body.nagarId = session.entityId;
-  const form = await hierarchy.formStateForNagara(session.entityId);
-  if (form.error) return res.status(400).json({ error: form.error });
-  const vibhag = form.levels.find((l) => l.sthara === 'Vibhag');
-  const bhag = form.levels.find((l) => l.sthara === 'Bhag');
-  if (vibhag && vibhag.value) body.vibhagId = vibhag.value.id;
-  if (bhag && bhag.value) body.bhagId = bhag.value.id;
-  if (!(await assertVaradiEntityAccess(req, res, body.upavasatiId || body.vasatiId || session.entityId))) {
+  const result = await shakheService.setReportHidden(
+    scalar(req.params.id),
+    session.entityId,
+    true,
+    scalar(body.date) || undefined
+  );
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  await writeAudit(req, 'shakhe.report_hide', { recordKind: 'shakhes', recordId: result.shakhe.id });
+  res.json(result.shakhe);
+}));
+
+app.post('/api/shakhe/:id/report-unhide', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  if (!session || session.level !== 'nagara') {
+    return res.status(401).json({ error: 'Nagara login required' });
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const result = await shakheService.setReportHidden(
+    scalar(req.params.id),
+    session.entityId,
+    false,
+    scalar(body.date) || undefined
+  );
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  await writeAudit(req, 'shakhe.report_unhide', { recordKind: 'shakhes', recordId: result.shakhe.id });
+  res.json(result.shakhe);
+}));
+
+app.put('/api/shakhe/:id', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  if (!session || !['prant', 'vibhag', 'bhag', 'nagara'].includes(session.level)) {
+    return res.status(401).json({ error: 'Varadi login required' });
+  }
+  const body = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+  const existing = await Shakhe.findById(scalar(req.params.id)).select('nagar').lean();
+  if (!existing) return res.status(404).json({ error: 'Shakhe not found' });
+  const existingNagarId = existing.nagar && existing.nagar.entity ? String(existing.nagar.entity) : '';
+  if (!(await assertVaradiEntityAccess(req, res, existingNagarId))) return;
+
+  if (session.level === 'nagara') {
+    body.nagarId = session.entityId;
+    const form = await hierarchy.formStateForNagara(session.entityId);
+    if (form.error) return res.status(400).json({ error: form.error });
+    const vibhag = form.levels.find((l) => l.sthara === 'Vibhag');
+    const bhag = form.levels.find((l) => l.sthara === 'Bhag');
+    if (vibhag && vibhag.value) body.vibhagId = vibhag.value.id;
+    if (bhag && bhag.value) body.bhagId = bhag.value.id;
+  }
+  if (!(await assertVaradiEntityAccess(req, res, body.upavasatiId || body.vasatiId || body.nagarId || existingNagarId))) {
     return;
   }
   const { shakhe, error, status } = await shakheService.updateShakhe(
     scalar(req.params.id),
     body,
-    { ip: audit.clientIp(req), nagara: true },
-    session.entityId
+    { ip: audit.clientIp(req), nagara: session.level === 'nagara' },
+    session.level === 'nagara' ? session.entityId : null
   );
   if (error) return res.status(status || 400).json({ error });
   await writeAudit(req, 'shakhe.update', { recordKind: 'shakhes', recordId: shakhe._id });
