@@ -1052,12 +1052,21 @@ function bindBearerSearch(blockId, key) {
       });
     }, 300);
   });
-  block.querySelector('.ob-clear').addEventListener('click', () => {
+  function clearBearerSelection(focusSearch) {
     resetBearer(key, blockId);
     if (key === 'mukhashikshak') closePhoneExists();
     refreshSubmit();
     if (typeof refreshDailySubmit === 'function') refreshDailySubmit();
-  });
+    if (focusSearch) {
+      const search = block.querySelector('.ob-search');
+      if (search) search.focus();
+    }
+  }
+  block.querySelector('.ob-clear').addEventListener('click', () => clearBearerSelection(true));
+  const removeBtn = block.querySelector('.ob-remove');
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => clearBearerSelection(false));
+  }
 }
 
 bindBearerSearch('mukhashikshak-block', 'mukhashikshak');
