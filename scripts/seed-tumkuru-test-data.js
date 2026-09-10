@@ -125,7 +125,8 @@ function shakheDoc(chain, vasati, upa, spec, phoneIdx) {
 }
 
 async function main() {
-  await mongoose.connect(process.env.MONGO_URI);
+  const { connectMongo } = require('../lib/mongo');
+  await connectMongo();
   const chain = await resolveChain();
 
   const old = await Shakhe.find({

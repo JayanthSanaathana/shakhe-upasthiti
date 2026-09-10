@@ -563,7 +563,7 @@ function armVaradiLogout(ms) {
   varadiLogoutTimer = setTimeout(async () => {
     try {
       await fetch('/api/varadi/logout', { method: 'POST' });
-    } catch (_) {}
+    } catch (_) { }
     logoutLocal();
     setHomeSessionMessage(VARADI_MSG_EXPIRED);
     showHome();
@@ -577,7 +577,7 @@ function armPhoneLogout(ms) {
   phoneLogoutTimer = setTimeout(async () => {
     try {
       await fetch('/api/phone/logout', { method: 'POST' });
-    } catch (_) {}
+    } catch (_) { }
     logoutPhoneLocal();
     setHomeSessionMessage(PHONE_MSG_EXPIRED);
     showHome();
@@ -617,7 +617,7 @@ function saveSelectedShakheId(phone, shakheId) {
   if (!key || !shakheId) return;
   try {
     localStorage.setItem(key, String(shakheId));
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function loadSelectedShakheId(phone) {
@@ -635,7 +635,7 @@ function clearSelectedShakheId(phone) {
   if (!key) return;
   try {
     localStorage.removeItem(key);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 const RECENT_SHAKHE_KEY = 'shakhe-phone-recent:v1';
@@ -672,7 +672,7 @@ function saveRecentShakhe(shakhe, phone) {
   );
   try {
     localStorage.setItem(RECENT_SHAKHE_KEY, JSON.stringify(next));
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function hideLookupRecent() {
@@ -784,13 +784,13 @@ function setHomeSessionMessage(message) {
 async function clearStaleVaradiCookie() {
   try {
     await fetch('/api/varadi/logout', { method: 'POST' });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 async function clearStalePhoneCookie() {
   try {
     await fetch('/api/phone/logout', { method: 'POST' });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function bounceIfVaradiAuth(res, data) {
@@ -1012,7 +1012,7 @@ async function selectBearerByPhone(key, blockId, phone, name) {
         phone: match.phone || phone,
       });
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function bindBearerSearch(blockId, key) {
@@ -1282,16 +1282,16 @@ function step1Complete() {
   const placeOk = hierarchyLocked()
     ? true
     : document.getElementById('shakhe-vibhag').value &&
-      document.getElementById('shakhe-bhag').value &&
-      document.getElementById('shakhe-nagar').value;
+    document.getElementById('shakhe-bhag').value &&
+    document.getElementById('shakhe-nagar').value;
   return Boolean(
     placeOk &&
-      document.getElementById('shakhe-vasati').value &&
-      document.getElementById('shakhe-upavasati').value &&
-      document.getElementById('shakhe-name').value.trim() &&
-      document.getElementById('shakhe-timing').value &&
-      document.getElementById('shakhe-time').value &&
-      document.getElementById('shakhe-type').value
+    document.getElementById('shakhe-vasati').value &&
+    document.getElementById('shakhe-upavasati').value &&
+    document.getElementById('shakhe-name').value.trim() &&
+    document.getElementById('shakhe-timing').value &&
+    document.getElementById('shakhe-time').value &&
+    document.getElementById('shakhe-type').value
   );
 }
 
@@ -1422,7 +1422,7 @@ async function checkUpavasatiShakhe(upavasatiId) {
     const list = (data.shakhes || []).filter((s) => s.id !== editingShakheId);
     if (!list.length) return;
     openUpavasatiExists(list);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 async function checkMukhashikshakShakhe(phone) {
@@ -1438,7 +1438,7 @@ async function checkMukhashikshakShakhe(phone) {
     const list = (data.shakhes || []).filter((s) => s.id !== editingShakheId);
     if (!list.length) return;
     openPhoneExists(list);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 const HIERARCHY_CHAIN = [
@@ -1903,21 +1903,28 @@ function mapsUrl(lat, lng) {
 
 function stackedLabel(text) {
   const raw = String(text || '');
-  const last = raw.lastIndexOf('/');
-  if (last < 0) return escapeHtml(raw);
-  const right = raw.slice(last + 1);
-  const left = raw.slice(0, last);
-  // ಜಿಲ್ಲಾ/ಭಾಗ/Bhag → kn "ಜಿಲ್ಲಾ/ಭಾಗ", en "Bhag"
-  if (left.includes('/') && /^[A-Za-z][A-Za-z\s-]*$/.test(right)) {
-    return (
-      `<span class="th-stack"><span class="th-kn">${escapeHtml(left)}</span>` +
-      `<span class="th-en">${escapeHtml(right)}</span></span>`
-    );
+  // Split at first "/" where left has Kannada/non-ASCII and right starts in Latin.
+  // Supports English that itself contains "/":
+  // ಶಾಖಾಯುಕ್ತ ಗ್ರಾಮ/ಉಪವಸತಿ/Shakhayuktha Grama/Upavasati
+  // → kn "ಶಾಖಾಯುಕ್ತ ಗ್ರಾಮ/ಉಪವಸತಿ", en "Shakhayuktha Grama/Upavasati"
+  let split = -1;
+  for (let i = 0; i < raw.length; i += 1) {
+    if (raw[i] !== '/') continue;
+    const left = raw.slice(0, i);
+    const right = raw.slice(i + 1);
+    if (/[^\x00-\x7F]/.test(left) && /^[A-Za-z]/.test(right)) {
+      split = i;
+      break;
+    }
   }
-  const i = raw.indexOf('/');
+  if (split < 0) {
+    const i = raw.indexOf('/');
+    if (i < 0) return escapeHtml(raw);
+    split = i;
+  }
   return (
-    `<span class="th-stack"><span class="th-kn">${escapeHtml(raw.slice(0, i))}</span>` +
-    `<span class="th-en">${escapeHtml(raw.slice(i + 1))}</span></span>`
+    `<span class="th-stack"><span class="th-kn">${escapeHtml(raw.slice(0, split))}</span>` +
+    `<span class="th-en">${escapeHtml(raw.slice(split + 1))}</span></span>`
   );
 }
 
@@ -1940,23 +1947,23 @@ function shakheListHeadHtml(opts) {
   const omitPlace = !!(opts && opts.omitPlace);
   const cols = omitPlace
     ? [
-        'ಶಾಖೆ/Shakhe',
-        'ಸಮಯ/Timing',
-        'ಪ್ರಕಾರ/Type',
-        'ಸ್ಥಳ/Sthala',
-        'ಗೂಗಲ್ ಸ್ಥಳ/Google location',
-        'ತಿದ್ದುಪಡಿ/Edit',
-      ]
+      'ಶಾಖೆ/Shakhe',
+      'ಸಮಯ/Timing',
+      'ಪ್ರಕಾರ/Type',
+      'ಸ್ಥಳ/Sthala',
+      'ಗೂಗಲ್ ಸ್ಥಳ/Google location',
+      'ತಿದ್ದುಪಡಿ/Edit',
+    ]
     : [
-        LABEL_VASATI,
-        LABEL_UPAVASATI,
-        'ಶಾಖೆ/Shakhe',
-        'ಸಮಯ/Timing',
-        'ಪ್ರಕಾರ/Type',
-        'ಸ್ಥಳ/Sthala',
-        'ಗೂಗಲ್ ಸ್ಥಳ/Google location',
-        'ತಿದ್ದುಪಡಿ/Edit',
-      ];
+      LABEL_VASATI,
+      LABEL_UPAVASATI,
+      'ಶಾಖೆ/Shakhe',
+      'ಸಮಯ/Timing',
+      'ಪ್ರಕಾರ/Type',
+      'ಸ್ಥಳ/Sthala',
+      'ಗೂಗಲ್ ಸ್ಥಳ/Google location',
+      'ತಿದ್ದುಪಡಿ/Edit',
+    ];
   const checkTh = withCheck ? '<th class="col-check"></th>' : '';
   const unhideTh = withUnhide ? `<th>${stackedLabel('ತೋರಿಸು/Unhide')}</th>` : '';
   return (
@@ -1979,12 +1986,12 @@ function shakheListCells(s, opts) {
     omitPlace
       ? ''
       : `<td class="cell-text">${escapeHtml((s.vasati && s.vasati.name) || '—')}</td>` +
-        `<td class="cell-text">${escapeHtml((s.upavasati && s.upavasati.name) || '—')}</td>`;
+      `<td class="cell-text">${escapeHtml((s.upavasati && s.upavasati.name) || '—')}</td>`;
   const nameCell = plainName
     ? `<td class="cell-name">${escapeHtml(s.name || '—')}</td>`
     : `<td class="cell-name"><button type="button" class="num-link" data-shakhe-id="${escapeHtml(
-        s.id
-      )}" data-nagar-id="${escapeHtml(nagarAttr)}">${escapeHtml(s.name || '—')}</button></td>`;
+      s.id
+    )}" data-nagar-id="${escapeHtml(nagarAttr)}">${escapeHtml(s.name || '—')}</button></td>`;
   return (
     place +
     nameCell +
@@ -2015,13 +2022,13 @@ function paintShakheList() {
     : '<p class="username">ತೋರಿಸುವ ಶಾಖೆಗಳಿಲ್ಲ/No visible shakhes</p>';
   const hiddenTable = hiddenItems.length
     ? `<table class="varadi-table shakhe-list-table">${shakheListHeadHtml({ withUnhide: true })}<tbody>${hiddenItems
-        .map(
-          (s) =>
-            `<tr>${shakheListCells(s)}<td><button type="button" class="secondary" data-unhide-id="${escapeHtml(
-              s.id
-            )}">ತೋರಿಸು/Unhide</button></td></tr>`
-        )
-        .join('')}</tbody></table>`
+      .map(
+        (s) =>
+          `<tr>${shakheListCells(s)}<td><button type="button" class="secondary" data-unhide-id="${escapeHtml(
+            s.id
+          )}">ತೋರಿಸು/Unhide</button></td></tr>`
+      )
+      .join('')}</tbody></table>`
     : '<p class="username">ಮರೆಯಾದ ಶಾಖೆಗಳಿಲ್ಲ/No hidden shakhes</p>';
   body.innerHTML =
     tableHtml +
@@ -2085,7 +2092,7 @@ document.getElementById('open-nagara-login-btn').addEventListener('click', async
       showVaradiGate({ message: VARADI_MSG_EXPIRED });
       return;
     }
-  } catch (_) {}
+  } catch (_) { }
   showVaradiGate();
 });
 
@@ -2118,7 +2125,7 @@ async function openVolunteerEntry(purpose) {
       errorEl.classList.remove('hidden');
       return;
     }
-  } catch (_) {}
+  } catch (_) { }
   openLookup({ purpose });
 }
 
@@ -2301,7 +2308,7 @@ document.getElementById('success-done').addEventListener('click', () => {
 document.getElementById('nagara-logout').addEventListener('click', async () => {
   try {
     await fetch('/api/varadi/logout', { method: 'POST' });
-  } catch (_) {}
+  } catch (_) { }
   logoutLocal();
   setHomeSessionMessage('');
   showHome();
@@ -2310,7 +2317,7 @@ document.getElementById('nagara-logout').addEventListener('click', async () => {
 document.getElementById('phone-logout').addEventListener('click', async () => {
   try {
     await fetch('/api/phone/logout', { method: 'POST' });
-  } catch (_) {}
+  } catch (_) { }
   const purpose = lookupPurpose || 'upasthiti';
   logoutPhoneLocal();
   setHomeSessionMessage('');
@@ -3145,19 +3152,19 @@ function paintNagaraShakheVaradi(data) {
   const toggleLabel = daysOpen ? '−' : '+';
   const daysGroupHead = daysOpen
     ? `<th class="num group-head days-ran-group-head" colspan="${daysColspan}">` +
-      `<div class="days-ran-head-inner">` +
-      `<span class="days-ran-group-title">${stackedLabel(
-        'ಶಾಖೆ ನಡೆದಿರುವ ದಿನ ಪ್ರಕಾರ/Shakhe Nadediruva Dina Prakara'
-      )}</span>` +
-      `<button type="button" class="days-ran-toggle" data-days-ran-toggle="1" aria-expanded="true" title="Hide">${toggleLabel}</button>` +
-      `</div></th>`
+    `<div class="days-ran-head-inner">` +
+    `<span class="days-ran-group-title">${stackedLabel(
+      'ಶಾಖೆ ನಡೆದಿರುವ ದಿನ ಪ್ರಕಾರ/Shakhe Nadediruva Dina Prakara'
+    )}</span>` +
+    `<button type="button" class="days-ran-toggle" data-days-ran-toggle="1" aria-expanded="true" title="Hide">${toggleLabel}</button>` +
+    `</div></th>`
     : `<th class="num days-ran-group-head days-ran-group-collapsed" rowspan="2">` +
-      `<button type="button" class="days-ran-toggle" data-days-ran-toggle="1" aria-expanded="false" title="Show">${toggleLabel}</button>` +
-      `</th>`;
+    `<button type="button" class="days-ran-toggle" data-days-ran-toggle="1" aria-expanded="false" title="Show">${toggleLabel}</button>` +
+    `</th>`;
   const daysSubHeads = daysOpen
     ? Array.from({ length: dayCount + 1 }, (_, i) => `<th class="num">${daysRanBucketLabel(i)}</th>`).join(
-        ''
-      )
+      ''
+    )
     : '';
   const thead =
     `<thead>` +
@@ -3206,22 +3213,22 @@ function paintNagaraShakheVaradi(data) {
       }
       const leafStatusOpts = isLeaf
         ? {
-            entityLevel: 'nagara',
-            entityId: reportScopeEntityId || nagaraId || '',
-            entityName: reportScopeEntityName || nagaraName || '',
-            vasatiId: cid,
-          }
+          entityLevel: 'nagara',
+          entityId: reportScopeEntityId || nagaraId || '',
+          entityName: reportScopeEntityName || nagaraName || '',
+          vasatiId: cid,
+        }
         : null;
       const yojita = isLeaf
         ? leafStatusOpts && leafStatusOpts.entityId
           ? shakheStatusCountLink(
-              row.yojitaShakheCount,
-              'all',
-              leafStatusOpts.entityLevel,
-              leafStatusOpts.entityId,
-              title,
-              leafStatusOpts.vasatiId
-            )
+            row.yojitaShakheCount,
+            'all',
+            leafStatusOpts.entityLevel,
+            leafStatusOpts.entityId,
+            title,
+            leafStatusOpts.vasatiId
+          )
           : cell(row.yojitaShakheCount)
         : nextLevel && cid
           ? shakheStatusCountLink(row.yojitaShakheCount, 'all', nextLevel, cid, title)
@@ -3229,13 +3236,13 @@ function paintNagaraShakheVaradi(data) {
       const running = isLeaf
         ? leafStatusOpts && leafStatusOpts.entityId
           ? shakheStatusCountLink(
-              row.nadayuthiruvaShakheCount,
-              'yes',
-              leafStatusOpts.entityLevel,
-              leafStatusOpts.entityId,
-              title,
-              leafStatusOpts.vasatiId
-            )
+            row.nadayuthiruvaShakheCount,
+            'yes',
+            leafStatusOpts.entityLevel,
+            leafStatusOpts.entityId,
+            title,
+            leafStatusOpts.vasatiId
+          )
           : cell(row.nadayuthiruvaShakheCount)
         : nextLevel && cid
           ? shakheStatusCountLink(row.nadayuthiruvaShakheCount, 'yes', nextLevel, cid, title)
@@ -3243,36 +3250,36 @@ function paintNagaraShakheVaradi(data) {
       const notRunning = isLeaf
         ? leafStatusOpts && leafStatusOpts.entityId
           ? shakheStatusCountLink(
-              row.nadayadaShakheCount,
-              'no',
-              leafStatusOpts.entityLevel,
-              leafStatusOpts.entityId,
-              title,
-              leafStatusOpts.vasatiId
-            )
+            row.nadayadaShakheCount,
+            'no',
+            leafStatusOpts.entityLevel,
+            leafStatusOpts.entityId,
+            title,
+            leafStatusOpts.vasatiId
+          )
           : cell(row.nadayadaShakheCount)
         : nextLevel && cid
           ? shakheStatusCountLink(row.nadayadaShakheCount, 'no', nextLevel, cid, title)
           : cell(row.nadayadaShakheCount);
       const daysOpts = isLeaf
         ? {
-            entityLevel: 'nagara',
-            entityId: reportScopeEntityId || nagaraId || '',
-            entityName: reportScopeEntityName || nagaraName || '',
-            vasatiId: cid,
-          }
+          entityLevel: 'nagara',
+          entityId: reportScopeEntityId || nagaraId || '',
+          entityName: reportScopeEntityName || nagaraName || '',
+          vasatiId: cid,
+        }
         : cid
           ? {
-              entityLevel: nextLevel || level,
-              entityId: cid,
-              entityName: title,
-            }
+            entityLevel: nextLevel || level,
+            entityId: cid,
+            entityName: title,
+          }
           : null;
       const daysCells = daysOpen
         ? Array.from({ length: dayCount + 1 }, (_, i) => {
-            const count = buckets[i] || 0;
-            return `<td class="num">${daysRanBucketLink(count, i, daysOpts)}</td>`;
-          }).join('')
+          const count = buckets[i] || 0;
+          return `<td class="num">${daysRanBucketLink(count, i, daysOpts)}</td>`;
+        }).join('')
         : '';
       return (
         `<tr>` +
@@ -3299,8 +3306,8 @@ function paintNagaraShakheVaradi(data) {
   const totBuckets = tot.daysRanBuckets || [];
   const totDaysCells = daysOpen
     ? Array.from({ length: dayCount + 1 }, (_, i) => {
-        return `<td class="num">${cell(totBuckets[i] || 0)}</td>`;
-      }).join('')
+      return `<td class="num">${cell(totBuckets[i] || 0)}</td>`;
+    }).join('')
     : `<td class="num days-ran-placeholder">·</td>`;
   const colCount = 10 + (daysOpen ? dayCount + 1 : 1);
   const foot =
@@ -3414,17 +3421,17 @@ function paintNagaraProgramVaradi(data) {
       }
       const statusBase = isLeaf
         ? {
-            entityLevel: 'nagara',
-            entityId: reportScopeEntityId || nagaraId || '',
-            entityName: reportScopeEntityName || nagaraName || '',
-            vasatiId: cid,
-          }
+          entityLevel: 'nagara',
+          entityId: reportScopeEntityId || nagaraId || '',
+          entityName: reportScopeEntityName || nagaraName || '',
+          vasatiId: cid,
+        }
         : cid
           ? {
-              entityLevel: nextLevel || level,
-              entityId: cid,
-              entityName: title,
-            }
+            entityLevel: nextLevel || level,
+            entityId: cid,
+            entityName: title,
+          }
           : null;
       const runningOpts = statusBase ? { ...statusBase, filter: 'yes' } : null;
       const nadayadaOpts = statusBase ? { ...statusBase, filter: 'no' } : null;
@@ -3434,23 +3441,23 @@ function paintNagaraProgramVaradi(data) {
           const done = counts[item.id] || 0;
           const opts = isLeaf
             ? {
-                itemId: item.id,
-                itemLabel: label,
-                entityLevel: 'nagara',
-                entityId: reportScopeEntityId || nagaraId || '',
-                entityName: reportScopeEntityName || nagaraName || '',
-                vasatiId: cid,
-                titleName: title,
-              }
+              itemId: item.id,
+              itemLabel: label,
+              entityLevel: 'nagara',
+              entityId: reportScopeEntityId || nagaraId || '',
+              entityName: reportScopeEntityName || nagaraName || '',
+              vasatiId: cid,
+              titleName: title,
+            }
             : cid
               ? {
-                  itemId: item.id,
-                  itemLabel: label,
-                  entityLevel: nextLevel || level,
-                  entityId: cid,
-                  entityName: title,
-                  titleName: title,
-                }
+                itemId: item.id,
+                itemLabel: label,
+                entityLevel: nextLevel || level,
+                entityId: cid,
+                entityName: title,
+                titleName: title,
+              }
               : null;
           return `<td class="num">${programItemRatioCell(done, running, opts)}</td>`;
         })
@@ -3638,8 +3645,8 @@ function programSplitFlatTableHtml(shakhes, itemLabel, visibleFields, statusKind
         const canDrill = Boolean(id) && name !== '—';
         const inner = canDrill
           ? `<button type="button" class="num-link program-split-drill" ` +
-            `data-split-key="${escapeHtml(field)}" data-split-id="${escapeHtml(id)}" ` +
-            `data-split-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+          `data-split-key="${escapeHtml(field)}" data-split-id="${escapeHtml(id)}" ` +
+          `data-split-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
           : escapeHtml(name);
         cells += `<td class="cell-group" rowspan="${span}">${inner}</td>`;
       });
@@ -3665,8 +3672,7 @@ function programSplitFlatTableHtml(shakhes, itemLabel, visibleFields, statusKind
     `<th>${stackedLabel('ಗಂಟೆ/Time')}</th>` +
     `<th class="num">${statusHead}</th>` +
     `</tr></thead>` +
-    `<tbody>${
-      body || `<tr><td colspan="${colCount}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`
+    `<tbody>${body || `<tr><td colspan="${colCount}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`
     }</tbody>` +
     `</table></div>`
   );
@@ -3816,8 +3822,8 @@ async function openProgramItemShakheSplit(opts) {
   const titleName = (opts && opts.titleName) || (opts && opts.entityName) || '';
   const keepFilter =
     nagaraListContext &&
-    nagaraListContext.mode === 'program-item-split' &&
-    nagaraListContext.itemId === itemId
+      nagaraListContext.mode === 'program-item-split' &&
+      nagaraListContext.itemId === itemId
       ? nagaraListContext.itemFilter || 'all'
       : 'all';
   shakheReturnTo = 'nagara-varadi-list';
@@ -3937,8 +3943,8 @@ function shakheGroupedHierCells(displayRows, spans, fields, idx) {
     const canDrill = Boolean(id) && name !== '—';
     const inner = canDrill
       ? `<button type="button" class="num-link program-split-drill" ` +
-        `data-split-key="${escapeHtml(field)}" data-split-id="${escapeHtml(id)}" ` +
-        `data-split-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+      `data-split-key="${escapeHtml(field)}" data-split-id="${escapeHtml(id)}" ` +
+      `data-split-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
       : escapeHtml(name);
     cells += `<td class="cell-group" rowspan="${span}">${inner}</td>`;
   });
@@ -3984,8 +3990,7 @@ function paintShakheYojitaListTable(shakhes) {
     `<div class="table-wrap"><table class="varadi-table shakhe-list-table shakhe-yojita-table"><thead><tr>` +
     hierHeads +
     listHead +
-    `</tr></thead><tbody>${
-      rows || `<tr><td colspan="${visibleFields.length + 6}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`
+    `</tr></thead><tbody>${rows || `<tr><td colspan="${visibleFields.length + 6}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`
     }</tbody></table></div>`
   );
 }
@@ -4071,8 +4076,8 @@ async function openShakheStatusSplit(opts) {
     opts && opts.itemFilter
       ? opts.itemFilter
       : nagaraListContext &&
-          nagaraListContext.mode === 'shakhe-status-split' &&
-          nagaraListContext.entityId === entityId
+        nagaraListContext.mode === 'shakhe-status-split' &&
+        nagaraListContext.entityId === entityId
         ? nagaraListContext.itemFilter || 'all'
         : 'all';
   shakheReturnTo = 'nagara-varadi-list';
@@ -4171,8 +4176,8 @@ function shakheDaysRanDetailRowHtml(s, visibleFields) {
     const canDrill = Boolean(id) && name !== '—';
     const inner = canDrill
       ? `<button type="button" class="num-link program-split-drill" ` +
-        `data-split-key="${escapeHtml(key)}" data-split-id="${escapeHtml(id)}" ` +
-        `data-split-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+      `data-split-key="${escapeHtml(key)}" data-split-id="${escapeHtml(id)}" ` +
+      `data-split-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
       : escapeHtml(name);
     hier += `<td class="cell-group">${inner}</td>`;
   });
@@ -4245,24 +4250,24 @@ function paintShakheDaysRanDetailTable(shakhes) {
   const foot =
     sorted.length > 0
       ? `<tfoot><tr class="report-total-row">` +
-        `<td colspan="${visibleFields.length + 1}">${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
-        `<td class="num">—</td>` +
-        `<td class="num">${tot.avgCell(tot.averages.taruna)}</td>` +
-        `<td class="num">${tot.avgCell(tot.averages.balaka)}</td>` +
-        `<td class="num">${tot.avgCell(tot.averages.total)}</td>` +
-        `<td class="num">${tot.avgCell(tot.averages.shishu)}</td>` +
-        `<td class="num">${tot.avgCell(tot.averages.mataBhagi)}</td>` +
-        `<td class="num">${tot.cell(tot.ottuSamparka.manegalu)}</td>` +
-        `<td class="num">${tot.cell(tot.ottuSamparka.vyaktigalu)}</td>` +
-        `</tr></tfoot>`
+      `<td colspan="${visibleFields.length + 1}">${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
+      `<td class="num">—</td>` +
+      `<td class="num">${tot.avgCell(tot.averages.taruna)}</td>` +
+      `<td class="num">${tot.avgCell(tot.averages.balaka)}</td>` +
+      `<td class="num">${tot.avgCell(tot.averages.total)}</td>` +
+      `<td class="num">${tot.avgCell(tot.averages.shishu)}</td>` +
+      `<td class="num">${tot.avgCell(tot.averages.mataBhagi)}</td>` +
+      `<td class="num">${tot.cell(tot.ottuSamparka.manegalu)}</td>` +
+      `<td class="num">${tot.cell(tot.ottuSamparka.vyaktigalu)}</td>` +
+      `</tr></tfoot>`
       : '';
   const rows = display.length
     ? display
-        .map((row, idx) => {
-          const hier = shakheGroupedHierCells(display, spans, fieldKeys, idx);
-          return `<tr>${hier}${shakheRunningMetricsCells(row._shakhe)}</tr>`;
-        })
-        .join('')
+      .map((row, idx) => {
+        const hier = shakheGroupedHierCells(display, spans, fieldKeys, idx);
+        return `<tr>${hier}${shakheRunningMetricsCells(row._shakhe)}</tr>`;
+      })
+      .join('')
     : `<tr><td colspan="${visibleFields.length + 9}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`;
   return (
     `<div class="table-wrap"><table class="varadi-table program-split-flat-table shakhe-days-ran-table running-shakhe-table"><thead>` +
@@ -4707,16 +4712,16 @@ async function openNagaraShakheVaradi(opts) {
         nagaraReportKind === 'shakhe'
           ? `/api/nagara/shakhe-varadi?${params.toString()}`
           : `/api/nagara/program-varadi?kind=${encodeURIComponent(
-              nagaraReportKind
-            )}&${params.toString()}`;
+            nagaraReportKind
+          )}&${params.toString()}`;
     } else {
       params.set(`${scopeLevel}Id`, scopeEntityId);
       url =
         nagaraReportKind === 'shakhe'
           ? `/api/varadi/${scopeLevel}/report?${params.toString()}`
           : `/api/varadi/${scopeLevel}/program-varadi?kind=${encodeURIComponent(
-              nagaraReportKind
-            )}&${params.toString()}`;
+            nagaraReportKind
+          )}&${params.toString()}`;
     }
     const res = await fetch(url);
     const data = await res.json().catch(() => ({}));
@@ -4899,19 +4904,19 @@ async function openNagaraShakheDayVaradi(shakheId, nagarIdHint) {
     prev.mode === 'shakhe-varadi' && prev.listReturn
       ? prev.listReturn
       : {
-          mode: prev.mode || null,
-          entityLevel: prev.entityLevel || null,
-          entityId: prev.entityId || null,
-          entityName: prev.entityName || '',
-          vasatiId: prev.vasatiId || null,
-          titleName: prev.titleName || '',
-          itemFilter: prev.itemFilter || 'all',
-          filter: prev.filter || 'all',
-          daysRanExact: prev.daysRanExact,
-          itemId: prev.itemId || null,
-          itemLabel: prev.itemLabel || '',
-          nagarId: prev.nagarId || nagarIdHint || null,
-        };
+        mode: prev.mode || null,
+        entityLevel: prev.entityLevel || null,
+        entityId: prev.entityId || null,
+        entityName: prev.entityName || '',
+        vasatiId: prev.vasatiId || null,
+        titleName: prev.titleName || '',
+        itemFilter: prev.itemFilter || 'all',
+        filter: prev.filter || 'all',
+        daysRanExact: prev.daysRanExact,
+        itemId: prev.itemId || null,
+        itemLabel: prev.itemLabel || '',
+        nagarId: prev.nagarId || nagarIdHint || null,
+      };
   nagaraListContext = {
     mode: 'shakhe-varadi',
     vasatiId: prev.vasatiId || null,
@@ -5167,9 +5172,9 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
       `<div class="list-summary">` +
       `<div class="list-summary-item"><span class="list-summary-label">ಒಟ್ಟು ಗ್ರಾಮ/ಉಪವಸತಿ/Total</span>` +
       `<strong class="list-summary-value">${items.length}</strong></div>` +
-      `<div class="list-summary-item"><span class="list-summary-label">ಶಾಖೆಯೊಂದಿಗೆ/With shakhe</span>` +
+      `<div class="list-summary-item"><span class="list-summary-label">ಶಾಖಾಯುಕ್ತ/Shakhayuktha</span>` +
       `<strong class="list-summary-value">${withShakhe.length}</strong></div>` +
-      `<div class="list-summary-item"><span class="list-summary-label">ಶಾಖೆ ರಹಿತ/Without shakhe</span>` +
+      `<div class="list-summary-item"><span class="list-summary-label">ಶಾಖಾರಹಿತ/Shakharahita</span>` +
       `<strong class="list-summary-value">${withoutShakhe.length}</strong></div>` +
       `</div>`;
 
@@ -5250,12 +5255,12 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
     body.innerHTML =
       summaryHtml +
       dropdownSection(
-        'ಗ್ರಾಮ/ಉಪವಸತಿ ಶಾಖೆಯೊಂದಿಗೆ/Upavasati with shakhe',
+        'ಶಾಖಾಯುಕ್ತ ಗ್ರಾಮ/ಉಪವಸತಿ/Shakhayuktha Grama/Upavasati',
         withShakhe.length,
         withShakheGroupedHtml(withShakhe)
       ) +
       dropdownSection(
-        'ಗ್ರಾಮ/ಉಪವಸತಿ ಶಾಖೆ ರಹಿತ/Upavasati without shakhe',
+        'ಶಾಖಾರಹಿತ ಗ್ರಾಮ/ಉಪವಸತಿ/Shakharahita Grama/Upavasati',
         withoutShakhe.length,
         withoutShakheTable(withoutShakhe)
       );
@@ -5760,11 +5765,11 @@ function showSavedUpasthiti(entry, opts) {
     ? entry.pravasis
     : entry.pravasiPerson || entry.pravasiPhone || entry.pravasiName
       ? [
-          entry.pravasiPerson || {
-            name: entry.pravasiName,
-            phone: entry.pravasiPhone,
-          },
-        ]
+        entry.pravasiPerson || {
+          name: entry.pravasiName,
+          phone: entry.pravasiPhone,
+        },
+      ]
       : [];
   const pravasiText = pravasiList.length
     ? pravasiList.map((p) => personDetailText(p)).join(' · ')
@@ -5853,11 +5858,11 @@ function fillDaily(entry) {
     ? entry.pravasis
     : entry.pravasiPerson || entry.pravasiPhone || entry.pravasiName
       ? [
-          entry.pravasiPerson || {
-            name: entry.pravasiName,
-            phone: entry.pravasiPhone,
-          },
-        ]
+        entry.pravasiPerson || {
+          name: entry.pravasiName,
+          phone: entry.pravasiPhone,
+        },
+      ]
       : [];
   pravasiPeople = pravasiList
     .filter((p) => p && (p.phone || p.name))
@@ -6213,7 +6218,7 @@ document.getElementById('samparka-done').addEventListener('click', () => {
       showHome();
       return;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   try {
     const res = await fetch('/api/phone/session');
@@ -6232,7 +6237,7 @@ document.getElementById('samparka-done').addEventListener('click', () => {
       logoutPhoneLocal();
       setHomeSessionMessage(PHONE_MSG_EXPIRED);
     }
-  } catch (_) {}
+  } catch (_) { }
 
   showHome();
 })();

@@ -3,6 +3,7 @@ const path = require('path');
 
 const express = require('express');
 const mongoose = require('mongoose');
+const { connectMongo } = require('./lib/mongo');
 const Shakhe = require('./models/Shakhe');
 const ShakheAudit = require('./models/ShakheAudit');
 const ShakheUpasthiti = require('./models/ShakheUpasthiti');
@@ -837,19 +838,24 @@ if (!process.env.MONGO_URI) {
   process.exit(1);
 }
 
-mongoose.connect(process.env.MONGO_URI).then(async () => {
-  await Shakhe.syncIndexes();
-  await ShakheAudit.syncIndexes();
-  await ShakheUpasthiti.syncIndexes();
-  await PhoneSession.syncIndexes();
-  // Drop legacy one-session-per-user unique index so up to 5 concurrent Varadi sessions work.
-  try {
-    await mongoose.connection.collection('varadisessions').dropIndex('userId_1');
-  } catch (err) {
-    if (!(err && (err.code === 27 || err.codeName === 'IndexNotFound'))) {
-      console.warn('varadisessions userId_1 drop:', err && err.message);
+connectMongo()
+  .then(async () => {
+    await Shakhe.syncIndexes();
+    await ShakheAudit.syncIndexes();
+    await ShakheUpasthiti.syncIndexes();
+    await PhoneSession.syncIndexes();
+    // Drop legacy one-session-per-user unique index so up to 5 concurrent Varadi sessions work.
+    try {
+      await mongoose.connection.collection('varadisessions').dropIndex('userId_1');
+    } catch (err) {
+      if (!(err && (err.code === 27 || err.codeName === 'IndexNotFound'))) {
+        console.warn('varadisessions userId_1 drop:', err && err.message);
+      }
     }
-  }
-  await VaradiSession.syncIndexes();
-  app.listen(PORT, () => console.log(`Shakhe Upasthiti running on http://localhost:${PORT}`));
-});
+    await VaradiSession.syncIndexes();
+    app.listen(PORT, () => console.log(`Shakhe Upasthiti running on http://localhost:${PORT}`));
+  })
+  .catch((err) => {
+    console.error('Mongo connect failed:', err && err.message ? err.message : err);
+    process.exit(1);
+  });

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getLiveModel } = require('../lib/mongo');
 
 const entitySchema = new mongoose.Schema(
   {
@@ -8,4 +9,4 @@ const entitySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Entity', entitySchema, 'entities');
+module.exports = getLiveModel('Entity', entitySchema, 'entities');

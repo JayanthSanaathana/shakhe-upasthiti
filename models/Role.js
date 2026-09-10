@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getLiveModel } = require('../lib/mongo');
 
 const roleSchema = new mongoose.Schema(
   {
@@ -7,4 +8,4 @@ const roleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Role', roleSchema, 'roles');
+module.exports = getLiveModel('Role', roleSchema, 'roles');
