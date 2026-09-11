@@ -2836,11 +2836,24 @@ function nagaraExcludeSunday() {
   return Boolean(el && el.checked);
 }
 
-function syncNagaraProgramDayFilter(dayCount, enabled) {
+function programDayFilterLabel(programKind) {
+  if (programKind === 'sharirik') {
+    return 'ಶಾರೀರಿಕ ಬಿಂದುಗಳು ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Sharirik points days happened';
+  }
+  if (programKind === 'boudhik') {
+    return 'ಬೌದ್ಧಿಕ್ ಬಿಂದುಗಳು ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Boudhik points days happened';
+  }
+  return 'ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Number of days happened';
+}
+
+function syncNagaraProgramDayFilter(dayCount, programKind) {
   const wrap = document.getElementById('nagara-program-day-filter-wrap');
   const select = document.getElementById('nagara-program-day-filter');
+  const label = document.getElementById('nagara-program-day-filter-label');
+  const enabled = programKind === 'boudhik' || programKind === 'sharirik';
   if (!wrap || !select) return;
   wrap.classList.toggle('hidden', !enabled);
+  if (label) label.textContent = programDayFilterLabel(programKind);
   if (!enabled) return;
   const prior = select.value;
   const max = Math.max(0, Number(dayCount) || 0);
@@ -3862,7 +3875,7 @@ function paintProgramItemShakheSplitBody() {
     `</select>` +
     `</div>` +
     `<div class="field">` +
-    `<label for="program-split-day-filter">ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Number of days happened</label>` +
+    `<label for="program-split-day-filter">${escapeHtml(programDayFilterLabel(nagaraListContext.programKind))}</label>` +
     `<select id="program-split-day-filter">` +
     `<option value="all"${dayFilter === 'all' ? ' selected' : ''}>ಎಲ್ಲಾ/All</option>` +
     `<option value="happened"${dayFilter === 'happened' ? ' selected' : ''}>ನಡೆದಿದೆ/Happened (${yesCount})</option>` +
@@ -4808,7 +4821,7 @@ async function openNagaraShakheVaradi(opts) {
 
   const { from, to, count, calendarCount, excludeSunday } = nagaraVaradiRangeDays();
   const isProgramReport = nextKind === 'boudhik' || nextKind === 'sharirik';
-  syncNagaraProgramDayFilter(count, isProgramReport);
+  syncNagaraProgramDayFilter(count, nextKind);
   const itemDayCount = isProgramReport ? nagaraProgramItemDayCount() : '';
   showScreen(nagaraReportView);
 
