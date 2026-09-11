@@ -1686,6 +1686,12 @@ h1.report-title {
   margin: 0 0 0.65rem;
 }
 
+@media (min-width: 720px) {
+  #nagara-list-body .program-split-filters {
+    grid-template-columns: repeat(2, minmax(12rem, 18rem));
+  }
+}
+
 #nagara-list-body .program-split-filters .field {
   margin: 0;
 }
