@@ -1958,7 +1958,6 @@ function shakheListHeadHtml(opts) {
       'ಸಮಯ/Timing',
       'ಪ್ರಕಾರ/Type',
       'ಸ್ಥಳ/Sthala',
-      'ಗೂಗಲ್ ಸ್ಥಳ/Google location',
       'ತಿದ್ದುಪಡಿ/Edit',
     ]
     : [
@@ -1968,7 +1967,6 @@ function shakheListHeadHtml(opts) {
       'ಸಮಯ/Timing',
       'ಪ್ರಕಾರ/Type',
       'ಸ್ಥಳ/Sthala',
-      'ಗೂಗಲ್ ಸ್ಥಳ/Google location',
       'ತಿದ್ದುಪಡಿ/Edit',
     ];
   const checkTh = withCheck ? '<th class="col-check"></th>' : '';
@@ -2005,7 +2003,6 @@ function shakheListCells(s, opts) {
     `<td class="cell-timing">${timingHtml}</td>` +
     `<td class="cell-text">${escapeHtml(TYPE_LABEL[s.shakheType] || s.shakheType || '—')}</td>` +
     `<td class="cell-text">${escapeHtml(s.stanaName || 'ಇಲ್ಲ/Not set')}</td>` +
-    `<td class="cell-loc">${locationCellHtml(s)}</td>` +
     `<td><button type="button" class="edit-link" data-edit-id="${escapeHtml(s.id)}"><span class="th-stack"><span class="th-kn">ತಿದ್ದುಪಡಿ</span><span class="th-en">Edit</span></span></button></td>`
   );
 }
@@ -2195,6 +2192,11 @@ document.getElementById('open-nagara-boudhik-varadi-btn').addEventListener('clic
 });
 document.getElementById('nagara-report-back').addEventListener('click', () => popReportDrill());
 document.getElementById('nagara-list-back').addEventListener('click', () => {
+  if (nagaraListContext && nagaraListContext.mode === 'program-item-split' && nagaraListContext.selectedHitId) {
+    nagaraListContext.selectedHitId = null;
+    paintProgramItemShakheSplitBody();
+    return;
+  }
   if (nagaraListContext && nagaraListContext.mode === 'shakhe-varadi') {
     const ret = nagaraListContext.listReturn || {};
     if (ret.mode === 'shakhe-status-split' && ret.entityId && ret.entityLevel) {
@@ -2595,6 +2597,7 @@ function shakheSummaryHtml(s) {
     kv('ಸಮಯ ವಿಭಾಗ/Timing', TIMING_LABEL[s.timing] || s.timing) +
     kv('ಸಮಯ/Time', s.time) +
     kv('ಪ್ರಕಾರ/Type', TYPE_LABEL[s.shakheType] || s.shakheType) +
+    kv('ಸ್ಥಳದ ಹೆಸರು/Sthala name', s.stanaName || '—') +
     kv('ಮುಖ್ಯ ಶಿಕ್ಷಕ್/Mukhya Shikshak', personCell(s.mukhashikshakName, s.mukhashikshakPhone)) +
     kv('ಕಾರ್ಯವಾಹ/Karyavaha', personCell(s.karyavahaName, s.karyavahaPhone)) +
     kv('ಶಾಖಾ ಪಾಲಕ್/Shakha palaka', personCell(s.shakhaPalakaName, s.shakhaPalakaPhone))
@@ -2648,20 +2651,8 @@ async function openShakheView(id) {
     return;
   }
   fields.innerHTML = shakheSummaryHtml(data);
-  const loc = data.location || {};
-  const hasPlace =
-    data.setupComplete && Number.isFinite(Number(loc.lat)) && Number.isFinite(Number(loc.lng));
-  if (hasPlace) {
-    document.getElementById('view-stana-fields').innerHTML = kv('ಸ್ಥಳದ ಹೆಸರು/Sthala name', data.stanaName);
-    const lat = Number(loc.lat);
-    const lng = Number(loc.lng);
-    const coords = document.getElementById('view-coords');
-    coords.innerHTML = `<a class="num-link" href="${escapeHtml(mapsUrl(lat, lng))}" target="_blank" rel="noopener noreferrer">${escapeHtml(
-      `${lat.toFixed(6)}, ${lng.toFixed(6)}`
-    )}</a>`;
-    place.classList.remove('hidden');
-    ensureViewMap(Number(loc.lat), Number(loc.lng));
-  } else {
+  // Google map/location row stays hidden; Sthala name is in the summary above.
+  if (!data.setupComplete && !data.stanaName) {
     pending.classList.remove('hidden');
   }
 }
@@ -3528,14 +3519,18 @@ function paintNagaraProgramVaradi(data) {
   });
 }
 
-function programShakheYesNo(hasItem, kind) {
+function programShakheYesNo(hasItem, kind, shakheId) {
   if (kind === 'running') {
     return hasItem
       ? `<span class="program-check-yes">${stackedLabel('ನಡೆಯುತ್ತಿದೆ/Running')}</span>`
       : `<span class="program-check-no">${stackedLabel('ನಡೆಯದು/Not running')}</span>`;
   }
   return hasItem
-    ? `<span class="program-check-yes">${stackedLabel('ಹೌದು/Yes')}</span>`
+    ? shakheId
+      ? `<button type="button" class="program-check-yes num-link" data-program-hit-id="${escapeHtml(
+          shakheId
+        )}">${stackedLabel('ಹೌದು/Yes')}</button>`
+      : `<span class="program-check-yes">${stackedLabel('ಹೌದು/Yes')}</span>`
     : `<span class="program-check-no">${stackedLabel('ಇಲ್ಲ/No')}</span>`;
 }
 
@@ -3637,6 +3632,7 @@ function programSplitFlatTableHtml(shakhes, itemLabel, visibleFields, statusKind
       : stackedLabel(itemLabel || 'ಆಯ್ಕೆ/Item');
   const display = sorted.map((s) => {
     const row = {
+      shakheId: s.id || '',
       name: s.name || '—',
       timing: TIMING_LABEL[s.timing] || s.timing || '—',
       time: s.time || '—',
@@ -3669,7 +3665,7 @@ function programSplitFlatTableHtml(shakhes, itemLabel, visibleFields, statusKind
         `<td class="cell-name">${escapeHtml(row.name)}</td>` +
         `<td>${escapeHtml(row.timing)}</td>` +
         `<td>${escapeHtml(row.time)}</td>` +
-        `<td class="num">${programShakheYesNo(row.hasItem, kind)}</td>`;
+        `<td class="num">${programShakheYesNo(row.hasItem, kind, row.shakheId)}</td>`;
       return `<tr>${cells}</tr>`;
     })
     .join('');
@@ -3713,6 +3709,23 @@ function filterProgramSplitShakhes(shakhes, filter) {
   return list;
 }
 
+function programItemDayLabel(days) {
+  const n = Number(days) || 0;
+  const kannada = {
+    1: 'ಒಂದು',
+    2: 'ಎರಡು',
+    3: 'ಮೂರು',
+    4: 'ನಾಲ್ಕು',
+    5: 'ಐದು',
+    6: 'ಆರು',
+    7: 'ಏಳು',
+    8: 'ಎಂಟು',
+    9: 'ಒಂಬತ್ತು',
+    10: 'ಹತ್ತು',
+  }[n] || String(n);
+  return `${kannada} ದಿನ/${n} ${n === 1 ? 'day' : 'days'}`;
+}
+
 function programSplitVisibleFields(path, level) {
   const base = programSplitBaseFieldIndex(level);
   const steps = path || [];
@@ -3743,18 +3756,66 @@ function programSplitPathHtml(path) {
   return `<div class="program-split-path-row">${crumbs.join('')}</div>`;
 }
 
+function programItemHitDaysTableHtml(shakhe, itemLabel, programKind) {
+  const days = (shakhe.days || []).slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+  const rows = days
+    .map((day) => {
+      const weekday = weekdayParts(day.date);
+      return (
+        `<tr>` +
+        `<td class="cell-name">${escapeHtml(shakhe.name || '—')}</td>` +
+        `<td>${escapeHtml(formatDateDisplay(day.date))}</td>` +
+        `<td>${escapeHtml((weekday && weekday.value) || '—')}</td>` +
+        `<td>${escapeHtml(itemLabel || '—')}</td>` +
+        `<td class="cell-details">${programHitExtrasHtml(day, programKind)}</td>` +
+        `</tr>`
+      );
+    })
+    .join('');
+  return (
+    `<div class="table-wrap"><table class="varadi-table program-hit-table">` +
+    `<thead><tr>` +
+    `<th>${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
+    `<th>${stackedLabel('ದಿನಾಂಕ/Date')}</th>` +
+    `<th>${stackedLabel('ದಿನ/Day')}</th>` +
+    `<th>${stackedLabel('ಆಯ್ಕೆ/Item')}</th>` +
+    `<th>${stackedLabel('ವಿವರ/Details')}</th>` +
+    `</tr></thead><tbody>${rows}</tbody></table></div>`
+  );
+}
+
 function paintProgramItemShakheSplitBody() {
   const body = document.getElementById('nagara-list-body');
   if (!body || !nagaraListContext || nagaraListContext.mode !== 'program-item-split') return;
   const itemLabel = nagaraListContext.itemLabel || nagaraListContext.itemId || '';
   const filterName = programSplitItemFilterLabel(itemLabel);
   const filter = nagaraListContext.itemFilter || 'all';
+  const dayFilter = nagaraListContext.itemDayFilter || 'all';
   const path = Array.isArray(nagaraListContext.splitPath) ? nagaraListContext.splitPath : [];
   const allShakhes = nagaraListContext.splitShakhes || [];
+  const selectedHit = allShakhes.find((s) => s && s.id === nagaraListContext.selectedHitId);
+  if (nagaraListContext.selectedHitId && selectedHit) {
+    body.innerHTML =
+      `<button type="button" class="back-link" id="program-hit-days-back">← ಹಿಂದೆ/Back</button>` +
+      `<h2 class="shakhe-head">${escapeHtml(itemLabel)} — ${escapeHtml(selectedHit.name || '')}</h2>` +
+      programItemHitDaysTableHtml(selectedHit, itemLabel, nagaraListContext.programKind);
+    document.getElementById('program-hit-days-back').addEventListener('click', () => {
+      nagaraListContext.selectedHitId = null;
+      paintProgramItemShakheSplitBody();
+    });
+    return;
+  }
+  nagaraListContext.selectedHitId = null;
   const scoped = programSplitScopeFilter(allShakhes, path);
   const yesCount = scoped.filter((s) => s && s.hasItem).length;
   const noCount = scoped.length - yesCount;
-  const filtered = filterProgramSplitShakhes(scoped, filter);
+  const selectedDays = Math.max(0, Number(nagaraListContext.dayCount) || nagaraVaradiRangeDays().count || 0);
+  const filtered = filterProgramSplitShakhes(scoped, filter).filter((s) => {
+    if (dayFilter === 'happened') return s && s.hasItem;
+    const exact = Number(dayFilter);
+    return !Number.isInteger(exact) || exact < 1 ? true : (s.days || []).length === exact;
+  });
+  const shownYesCount = filtered.filter((s) => s && s.hasItem).length;
   const visibleFields = programSplitVisibleFields(path, nagaraListContext.entityLevel);
   const filterHtml =
     `<div class="list-filters program-split-filters">` +
@@ -3766,6 +3827,20 @@ function paintProgramItemShakheSplitBody() {
     `<option value="no"${filter === 'no' ? ' selected' : ''}>ಇಲ್ಲ/No (${noCount})</option>` +
     `</select>` +
     `</div>` +
+    `<div class="field">` +
+    `<label for="program-split-day-filter">ಎಷ್ಟು ದಿನ/Number of days</label>` +
+    `<select id="program-split-day-filter">` +
+    `<option value="all"${dayFilter === 'all' ? ' selected' : ''}>ಎಲ್ಲಾ/All</option>` +
+    `<option value="happened"${dayFilter === 'happened' ? ' selected' : ''}>ನಡೆದಿದೆ/Happened (${yesCount})</option>` +
+    Array.from({ length: selectedDays }, (_, i) => {
+      const days = i + 1;
+      const count = scoped.filter((s) => s && (s.days || []).length === days).length;
+      return `<option value="${days}"${String(dayFilter) === String(days) ? ' selected' : ''}>${escapeHtml(
+        programItemDayLabel(days)
+      )} (${count})</option>`;
+    }).join('') +
+    `</select>` +
+    `</div>` +
     `</div>`;
   const itemParts = programSplitItemParts(itemLabel);
   const summary =
@@ -3773,7 +3848,7 @@ function paintProgramItemShakheSplitBody() {
     `<div class="list-summary-item"><span class="list-summary-label">${stackedLabel(
       `${itemParts.kn} ನಡೆದಿರುವ ಶಾಖೆಗಳು/${itemParts.en} Nadediruva Shakhegalu`
     )}</span><strong class="list-summary-value">${escapeHtml(
-      String(yesCount)
+      String(dayFilter === 'all' ? yesCount : shownYesCount)
     )}</strong></div>` +
     `<div class="list-summary-item"><span class="list-summary-label">${stackedLabel(
       'ನಡೆಯುತ್ತಿರುವ ಶಾಖೆ/Nadayuthiruva Shakhe'
@@ -3794,6 +3869,20 @@ function paintProgramItemShakheSplitBody() {
       paintProgramItemShakheSplitBody();
     });
   }
+  const daySel = document.getElementById('program-split-day-filter');
+  if (daySel) {
+    daySel.addEventListener('change', () => {
+      nagaraListContext.itemDayFilter = daySel.value || 'all';
+      if (nagaraListContext.itemDayFilter !== 'all') nagaraListContext.itemFilter = 'yes';
+      paintProgramItemShakheSplitBody();
+    });
+  }
+  body.querySelectorAll('button[data-program-hit-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      nagaraListContext.selectedHitId = btn.getAttribute('data-program-hit-id') || null;
+      paintProgramItemShakheSplitBody();
+    });
+  });
   body.querySelectorAll('button.program-split-drill').forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.getAttribute('data-split-key');
@@ -3853,6 +3942,7 @@ async function openProgramItemShakheSplit(opts) {
     titleName,
     programKind,
     itemFilter: keepFilter,
+    itemDayFilter: 'all',
     splitPath: [],
     splitShakhes: [],
     splitRunningCount: 0,
@@ -3893,6 +3983,7 @@ async function openProgramItemShakheSplit(opts) {
     nagaraListContext.splitShakhes = allShakhes;
     nagaraListContext.splitRunningCount =
       data.nadayuthiruvaShakheCount || allShakhes.length || 0;
+    nagaraListContext.dayCount = data.dayCount || 0;
     paintProgramItemShakheSplitBody();
   } finally {
     setNagaraListLoading(false);
@@ -3993,7 +4084,6 @@ function paintShakheYojitaListTable(shakhes) {
     `<th>${stackedLabel('ಸಮಯ/Timing')}</th>` +
     `<th>${stackedLabel('ಪ್ರಕಾರ/Type')}</th>` +
     `<th>${stackedLabel('ಸ್ಥಳ/Sthala')}</th>` +
-    `<th>${stackedLabel('ಗೂಗಲ್ ಸ್ಥಳ/Google location')}</th>` +
     `<th>${stackedLabel('ತಿದ್ದುಪಡಿ/Edit')}</th>`;
   const rows = display
     .map((row, idx) => {
@@ -4005,7 +4095,7 @@ function paintShakheYojitaListTable(shakhes) {
     `<div class="table-wrap"><table class="varadi-table shakhe-list-table shakhe-yojita-table"><thead><tr>` +
     hierHeads +
     listHead +
-    `</tr></thead><tbody>${rows || `<tr><td colspan="${visibleFields.length + 6}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`
+    `</tr></thead><tbody>${rows || `<tr><td colspan="${visibleFields.length + 5}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`
     }</tbody></table></div>`
   );
 }
@@ -4604,6 +4694,8 @@ async function openNagaraProgramItemHits(vasatiId, titleName, itemId, itemLabel)
           `<td>${escapeHtml(timingLabel)}</td>` +
           `<td>${escapeHtml(shakhe.time || '—')}</td>` +
           `<td>${escapeHtml(formatDateDisplay(day.date))}</td>` +
+          `<td>${escapeHtml((weekdayParts(day.date) || {}).value || '—')}</td>` +
+          `<td>${escapeHtml(itemLabel || '—')}</td>` +
           `<td class="cell-details">${programHitExtrasHtml(day, programKind)}</td>` +
           `</tr>`
         );
@@ -4619,6 +4711,8 @@ async function openNagaraProgramItemHits(vasatiId, titleName, itemId, itemLabel)
       `<th>${stackedLabel('ಸಮಯ/Timing')}</th>` +
       `<th>${stackedLabel('ಗಂಟೆ/Time')}</th>` +
       `<th>${stackedLabel('ದಿನಾಂಕ/Date')}</th>` +
+      `<th>${stackedLabel('ದಿನ/Day')}</th>` +
+      `<th>${stackedLabel('ಆಯ್ಕೆ/Item')}</th>` +
       `<th>${stackedLabel('ವಿವರ/Details')}</th>` +
       `</tr></thead>` +
       `<tbody>${rowHtml}</tbody>` +

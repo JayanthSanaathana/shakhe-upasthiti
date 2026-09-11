@@ -17,7 +17,7 @@ const shakheSchema = new mongoose.Schema({
   nagar: { type: placedEntitySchema, required: true },
   vasati: { type: placedEntitySchema, required: true },
   upavasati: { type: placedEntitySchema, required: true },
-  name: { type: String, required: true, trim: true, maxlength: 40 },
+  name: { type: String, required: true, trim: true, maxlength: 60 },
   timing: { type: String, required: true, enum: TIMING },
   time: { type: String, required: true, match: /^\d{2}:\d{2}$/ },
   shakheType: { type: String, required: true, enum: SHAKHE_TYPE },
@@ -27,7 +27,7 @@ const shakheSchema = new mongoose.Schema({
   karyavahaName: { type: String, trim: true, default: null, maxlength: 80 },
   shakhaPalakaPhone: { type: String, trim: true, default: null, maxlength: 15 },
   shakhaPalakaName: { type: String, trim: true, default: null, maxlength: 80 },
-  stanaName: { type: String, trim: true, default: null, minlength: 5, maxlength: 15 },
+  stanaName: { type: String, trim: true, default: null, minlength: 5, maxlength: 60 },
   location: {
     lat: { type: Number, default: null, min: -90, max: 90 },
     lng: { type: Number, default: null, min: -180, max: 180 },
