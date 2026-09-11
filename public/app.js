@@ -2281,6 +2281,13 @@ if (nagaraExcludeSundayEl) {
     openNagaraShakheVaradi({ kind: nagaraReportKind });
   });
 }
+const nagaraProgramDayFilterEl = document.getElementById('nagara-program-day-filter');
+if (nagaraProgramDayFilterEl) {
+  nagaraProgramDayFilterEl.addEventListener('change', () => {
+    nagaraReportCache = null;
+    openNagaraShakheVaradi({ kind: nagaraReportKind });
+  });
+}
 document.getElementById('form-back').addEventListener('click', () => {
   if (shakheStep === 2) {
     setShakheStep(1);
@@ -2829,6 +2836,28 @@ function nagaraExcludeSunday() {
   return Boolean(el && el.checked);
 }
 
+function syncNagaraProgramDayFilter(dayCount, enabled) {
+  const wrap = document.getElementById('nagara-program-day-filter-wrap');
+  const select = document.getElementById('nagara-program-day-filter');
+  if (!wrap || !select) return;
+  wrap.classList.toggle('hidden', !enabled);
+  if (!enabled) return;
+  const prior = select.value;
+  const max = Math.max(0, Number(dayCount) || 0);
+  select.innerHTML =
+    `<option value="">ನಡೆದಿದೆ/Happened</option>` +
+    Array.from({ length: max }, (_, i) => {
+      const days = i + 1;
+      return `<option value="${days}">${escapeHtml(programItemDayLabel(days))}</option>`;
+    }).join('');
+  select.value = prior && Number(prior) <= max ? prior : '';
+}
+
+function nagaraProgramItemDayCount() {
+  const select = document.getElementById('nagara-program-day-filter');
+  return select && select.value ? select.value : '';
+}
+
 function setNagaraVaradiDayCount(selected) {
   const selectedEl = document.getElementById('nagara-varadi-day-count');
   if (selectedEl) {
@@ -3375,6 +3404,7 @@ function programItemRatioCell(done, running, opts) {
     `data-entity-id="${escapeHtml(opts.entityId)}" ` +
     `data-entity-name="${escapeHtml(opts.entityName || '')}" ` +
     `data-vasati-id="${escapeHtml(opts.vasatiId || '')}" ` +
+    `data-item-day-count="${escapeHtml(String(opts.itemDayCount || ''))}" ` +
     `data-list-title="${escapeHtml(opts.titleName || opts.entityName || '')}">` +
     `${escapeHtml(label)}</button>`
   );
@@ -3386,6 +3416,7 @@ function paintNagaraProgramVaradi(data) {
   const cell = (v) => (v == null ? '—' : String(v));
   const level = (data && data.level) || reportScopeLevel || 'nagara';
   const isLeaf = level === 'nagara';
+  const itemDayCount = data.itemDayCount || '';
   const nextLevel = NEXT_VARADI_LEVEL[level] || null;
   const emptyMsg = isLeaf ? 'ವಸತಿ/ಮಂಡಲಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
   const itemHeads = catalog
@@ -3454,6 +3485,7 @@ function paintNagaraProgramVaradi(data) {
               entityName: reportScopeEntityName || nagaraName || '',
               vasatiId: cid,
               titleName: title,
+              itemDayCount,
             }
             : cid
               ? {
@@ -3463,6 +3495,7 @@ function paintNagaraProgramVaradi(data) {
                 entityId: cid,
                 entityName: title,
                 titleName: title,
+                itemDayCount,
               }
               : null;
           return `<td class="num">${programItemRatioCell(done, running, opts)}</td>`;
@@ -3514,6 +3547,7 @@ function paintNagaraProgramVaradi(data) {
         entityName: btn.getAttribute('data-entity-name') || '',
         vasatiId: btn.getAttribute('data-vasati-id') || '',
         titleName: btn.getAttribute('data-list-title') || '',
+        itemDayCount: btn.getAttribute('data-item-day-count') || '',
       });
     });
   });
@@ -3930,6 +3964,10 @@ async function openProgramItemShakheSplit(opts) {
       nagaraListContext.itemId === itemId
       ? nagaraListContext.itemFilter || 'all'
       : 'all';
+  const selectedItemDayFilter =
+    opts && opts.itemDayCount
+      ? String(opts.itemDayCount)
+      : 'all';
   shakheReturnTo = 'nagara-varadi-list';
   nagaraListContext = {
     mode: 'program-item-split',
@@ -3942,7 +3980,7 @@ async function openProgramItemShakheSplit(opts) {
     titleName,
     programKind,
     itemFilter: keepFilter,
-    itemDayFilter: 'all',
+    itemDayFilter: selectedItemDayFilter,
     splitPath: [],
     splitShakhes: [],
     splitRunningCount: 0,
@@ -4769,6 +4807,9 @@ async function openNagaraShakheVaradi(opts) {
   if (toEl.value > today) toEl.value = today;
 
   const { from, to, count, calendarCount, excludeSunday } = nagaraVaradiRangeDays();
+  const isProgramReport = nextKind === 'boudhik' || nextKind === 'sharirik';
+  syncNagaraProgramDayFilter(count, isProgramReport);
+  const itemDayCount = isProgramReport ? nagaraProgramItemDayCount() : '';
   showScreen(nagaraReportView);
 
   const cacheOk =
@@ -4778,6 +4819,7 @@ async function openNagaraShakheVaradi(opts) {
     nagaraReportCache.from === from &&
     nagaraReportCache.to === to &&
     Boolean(nagaraReportCache.excludeSunday) === excludeSunday &&
+    String(nagaraReportCache.itemDayCount || '') === String(itemDayCount) &&
     (nagaraReportCache.level || 'nagara') === scopeLevel &&
     ((scopeLevel === 'nagara' &&
       nagaraReportCache.nagar &&
@@ -4814,6 +4856,7 @@ async function openNagaraShakheVaradi(opts) {
   try {
     const params = new URLSearchParams({ from, to });
     if (excludeSunday) params.set('excludeSunday', '1');
+    if (itemDayCount) params.set('itemDayCount', itemDayCount);
     let url;
     if (scopeLevel === 'nagara') {
       params.set('nagarId', scopeEntityId);

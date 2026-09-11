@@ -415,7 +415,8 @@ app.get('/api/nagara/program-varadi', varadiAuth.requireSession, limitRead, asyn
     kind,
     scalar(req.query.from),
     scalar(req.query.to),
-    excludeSunday
+    excludeSunday,
+    scalar(req.query.itemDayCount)
   );
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   res.json(result);
@@ -575,7 +576,8 @@ function mountParentReportRoutes(level) {
         scalar(req.query.kind),
         scalar(req.query.from),
         scalar(req.query.to),
-        excludeSunday
+        excludeSunday,
+        scalar(req.query.itemDayCount)
       );
       if (result.error) return res.status(result.status || 400).json({ error: result.error });
       res.json(result);
