@@ -1877,28 +1877,6 @@ h1.report-title {
   margin: 0;
 }
 
-.program-item-head {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.program-day-filter-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  font-weight: 400;
-  text-align: left;
-}
-
-.program-day-filter-inline select {
-  width: auto;
-  min-width: 7rem;
-  margin: 0;
-}
-
 .exclude-sunday-line input {
   width: auto;
   margin: 0;

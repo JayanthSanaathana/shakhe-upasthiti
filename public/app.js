@@ -2840,7 +2840,7 @@ function syncNagaraProgramDayFilter(dayCount, enabled) {
   const wrap = document.getElementById('nagara-program-day-filter-wrap');
   const select = document.getElementById('nagara-program-day-filter');
   if (!wrap || !select) return;
-  wrap.classList.add('hidden');
+  wrap.classList.toggle('hidden', !enabled);
   if (!enabled) return;
   const prior = select.value;
   const max = Math.max(0, Number(dayCount) || 0);
@@ -2851,24 +2851,6 @@ function syncNagaraProgramDayFilter(dayCount, enabled) {
       return `<option value="${days}">${escapeHtml(programItemDayLabel(days))}</option>`;
     }).join('');
   select.value = prior && Number(prior) <= max ? prior : '';
-}
-
-function programDayFilterInTableHtml() {
-  const select = document.getElementById('nagara-program-day-filter');
-  if (!select) return '';
-  const value = select.value || '';
-  const options = Array.from(select.options)
-    .map((option) => {
-      const selected = String(option.value) === String(value) ? ' selected' : '';
-      return `<option value="${escapeHtml(option.value)}"${selected}>${escapeHtml(option.textContent || '')}</option>`;
-    })
-    .join('');
-  return (
-    `<label class="program-day-filter-inline" for="nagara-program-day-filter-in-table">` +
-    `<span>ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Number of days happened</span>` +
-    `<select id="nagara-program-day-filter-in-table">${options}</select>` +
-    `</label>`
-  );
 }
 
 function nagaraProgramItemDayCount() {
@@ -3438,10 +3420,7 @@ function paintNagaraProgramVaradi(data) {
   const nextLevel = NEXT_VARADI_LEVEL[level] || null;
   const emptyMsg = isLeaf ? 'ವಸತಿ/ಮಂಡಲಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
   const itemHeads = catalog
-    .map((item, index) => {
-      const filter = index === 0 ? programDayFilterInTableHtml() : '';
-      return `<th class="num"><div class="program-item-head">${stackedLabel(`${item.kn}/${item.en}`)}${filter}</div></th>`;
-    })
+    .map((item) => `<th class="num">${stackedLabel(`${item.kn}/${item.en}`)}</th>`)
     .join('');
   const thead =
     `<thead><tr>` +
@@ -3558,15 +3537,6 @@ function paintNagaraProgramVaradi(data) {
     `<tbody>${body || `<tr><td colspan="${colCount}">${emptyMsg}</td></tr>`}</tbody>` +
     (data.rows && data.rows.length ? `<tfoot>${foot}</tfoot>` : '');
   bindNagaraReportListClicks(table);
-  const dayFilter = table.querySelector('#nagara-program-day-filter-in-table');
-  if (dayFilter) {
-    dayFilter.addEventListener('change', () => {
-      const state = document.getElementById('nagara-program-day-filter');
-      if (state) state.value = dayFilter.value;
-      nagaraReportCache = null;
-      openNagaraShakheVaradi({ kind: nagaraReportKind });
-    });
-  }
   table.querySelectorAll('button.program-item-split-link').forEach((btn) => {
     btn.addEventListener('click', () => {
       openProgramItemShakheSplit({
@@ -3892,7 +3862,7 @@ function paintProgramItemShakheSplitBody() {
     `</select>` +
     `</div>` +
     `<div class="field">` +
-    `<label for="program-split-day-filter">ಎಷ್ಟು ದಿನ/Number of days</label>` +
+    `<label for="program-split-day-filter">ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Number of days happened</label>` +
     `<select id="program-split-day-filter">` +
     `<option value="all"${dayFilter === 'all' ? ' selected' : ''}>ಎಲ್ಲಾ/All</option>` +
     `<option value="happened"${dayFilter === 'happened' ? ' selected' : ''}>ನಡೆದಿದೆ/Happened (${yesCount})</option>` +
