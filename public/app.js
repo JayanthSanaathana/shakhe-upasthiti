@@ -3875,7 +3875,7 @@ function paintProgramItemShakheSplitBody() {
     `</select>` +
     `</div>` +
     `<div class="field">` +
-    `<label for="program-split-day-filter">${escapeHtml(programDayFilterLabel(nagaraListContext.programKind))}</label>` +
+    `<label for="program-split-day-filter">ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Number of days happened</label>` +
     `<select id="program-split-day-filter">` +
     `<option value="all"${dayFilter === 'all' ? ' selected' : ''}>ಎಲ್ಲಾ/All</option>` +
     `<option value="happened"${dayFilter === 'happened' ? ' selected' : ''}>ನಡೆದಿದೆ/Happened (${yesCount})</option>` +
