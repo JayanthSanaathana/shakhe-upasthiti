@@ -8,7 +8,7 @@ const placedEntitySchema = new mongoose.Schema(
   { _id: false }
 );
 
-const TIMING = ['prabhat', 'sayam', 'ratri'];
+const TIMING = ['prabhat', 'madhyana', 'sayam', 'ratri'];
 const SHAKHE_TYPE = ['balaka', 'Taruna-Vidyarthi', 'Taruna-Udyogi', 'Samyuktha', 'Proudha'];
 
 const shakheSchema = new mongoose.Schema({

@@ -174,11 +174,12 @@
         <input type="text" id="shakhe-name" maxlength="60" required>
         <p class="field-error" data-error-for="shakhe-name"></p>
       </div>
-      <div class="field">
+      <div class="field hidden">
         <label for="shakhe-timing">ಸಮಯ ವಿಭಾಗ/Timing</label>
-        <select id="shakhe-timing" required>
+        <select id="shakhe-timing">
           <option value="">ಆಯ್ಕೆಮಾಡಿ/Select</option>
           <option value="prabhat">ಪ್ರಭಾತ್/Prabhat</option>
+          <option value="madhyana">ಮಧ್ಯಾಹ್ನ/Madhyana</option>
           <option value="sayam">ಸಾಯಂ/Sayam</option>
           <option value="ratri">ರಾತ್ರಿ/Ratri</option>
         </select>
@@ -244,7 +245,7 @@
           <input type="text" id="shakhe-stana-name" minlength="5" maxlength="60" required>
           <p class="field-error" data-error-for="shakhe-stana-name"></p>
         </div>
-        <div class="field">
+        <div class="field hidden">
           <label for="shakhe-address">ಗೂಗಲ್ ಸ್ಥಳ/Google location <span class="optional">(ಐಚ್ಛಿಕ/optional)</span></label>
           <input type="text" id="shakhe-address" maxlength="80" placeholder="ವಿಳಾಸ ಟೈಪ್ ಮಾಡಿ/Type part of the address"
             autocomplete="off">

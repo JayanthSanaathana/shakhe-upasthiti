@@ -44,9 +44,21 @@ const WAIT_SELECT_NAGARA = 'ಮೊದಲು ತಾಲ್ಲೂಕು/ನಗರ �
 const WAIT_SELECT_VASATI = 'ಮೊದಲು ವಸತಿ/ಮಂಡಲ ಆಯ್ಕೆಮಾಡಿ/Select a Vasati first';
 const TIMING_LABEL = {
   prabhat: 'ಪ್ರಭಾತ್/Prabhat',
+  madhyana: 'ಮಧ್ಯಾಹ್ನ/Madhyana',
   sayam: 'ಸಾಯಂ/Sayam',
   ratri: 'ರಾತ್ರಿ/Ratri',
 };
+
+/** [04:00,11:00) prabhat, [11:00,16:00) madhyana, [16:00,19:00) sayam, else ratri. */
+function timingFromTime(time) {
+  const match = String(time || '').trim().match(/^(\d{2}):(\d{2})/);
+  if (!match) return '';
+  const minutes = Number(match[1]) * 60 + Number(match[2]);
+  if (minutes >= 4 * 60 && minutes < 11 * 60) return 'prabhat';
+  if (minutes >= 11 * 60 && minutes < 16 * 60) return 'madhyana';
+  if (minutes >= 16 * 60 && minutes < 19 * 60) return 'sayam';
+  return 'ratri';
+}
 const TYPE_LABEL = {
   balaka: 'ಬಾಲಕ/Balaka',
   'Taruna-Vidyarthi': 'ತರುಣ-ವಿದ್ಯಾರ್ಥಿ/Taruna-Vidyarthi',
@@ -1234,10 +1246,6 @@ function showShakheStep1Errors() {
     setFieldError('shakhe-name', FIELD_ENTER_MSG);
     ok = false;
   }
-  if (!document.getElementById('shakhe-timing').value) {
-    setFieldError('shakhe-timing', FIELD_SELECT_MSG);
-    ok = false;
-  }
   if (!document.getElementById('shakhe-time').value) {
     setFieldError('shakhe-time', FIELD_SELECT_MSG);
     ok = false;
@@ -1289,7 +1297,6 @@ function step1Complete() {
     document.getElementById('shakhe-vasati').value &&
     document.getElementById('shakhe-upavasati').value &&
     document.getElementById('shakhe-name').value.trim() &&
-    document.getElementById('shakhe-timing').value &&
     document.getElementById('shakhe-time').value &&
     document.getElementById('shakhe-type').value
   );
@@ -1638,8 +1645,8 @@ async function openEditShakhe(id) {
       if (row.upavasati && row.upavasati.id) upa.value = row.upavasati.id;
     }
     document.getElementById('shakhe-name').value = row.name || '';
-    document.getElementById('shakhe-timing').value = row.timing || '';
     document.getElementById('shakhe-time').value = row.time || '';
+    document.getElementById('shakhe-timing').value = timingFromTime(row.time) || row.timing || '';
     document.getElementById('shakhe-type').value = row.shakheType || '';
     await selectBearerByPhone(
       'mukhashikshak',
@@ -2389,10 +2396,16 @@ HIERARCHY_CHAIN.forEach((level) => {
   });
 });
 
-['shakhe-vibhag', 'shakhe-bhag', 'shakhe-nagar', 'shakhe-vasati', 'shakhe-upavasati', 'shakhe-name', 'shakhe-timing', 'shakhe-time', 'shakhe-type', 'shakhe-stana-name'].forEach((id) => {
+['shakhe-vibhag', 'shakhe-bhag', 'shakhe-nagar', 'shakhe-vasati', 'shakhe-upavasati', 'shakhe-name', 'shakhe-time', 'shakhe-type', 'shakhe-stana-name'].forEach((id) => {
   const el = document.getElementById(id);
   el.addEventListener('input', refreshSubmit);
   el.addEventListener('change', refreshSubmit);
+});
+document.getElementById('shakhe-time').addEventListener('change', () => {
+  document.getElementById('shakhe-timing').value = timingFromTime(document.getElementById('shakhe-time').value);
+});
+document.getElementById('shakhe-time').addEventListener('input', () => {
+  document.getElementById('shakhe-timing').value = timingFromTime(document.getElementById('shakhe-time').value);
 });
 document.getElementById('shakhe-upavasati').addEventListener('change', () => {
   checkUpavasatiShakhe(document.getElementById('shakhe-upavasati').value);
@@ -2443,6 +2456,8 @@ shakheForm.addEventListener('submit', async (e) => {
   submit.disabled = true;
   const timeVal = document.getElementById('shakhe-time').value;
   const time = timeVal.length >= 5 ? timeVal.slice(0, 5) : timeVal;
+  const timing = timingFromTime(time);
+  document.getElementById('shakhe-timing').value = timing;
   const editing = formMode === 'edit' && editingShakheId;
   const res = await fetch(editing ? `/api/shakhe/${encodeURIComponent(editingShakheId)}` : '/api/shakhe', {
     method: editing ? 'PUT' : 'POST',
@@ -2454,7 +2469,7 @@ shakheForm.addEventListener('submit', async (e) => {
       vasatiId: document.getElementById('shakhe-vasati').value,
       upavasatiId: document.getElementById('shakhe-upavasati').value,
       name: document.getElementById('shakhe-name').value.trim(),
-      timing: document.getElementById('shakhe-timing').value,
+      timing,
       time,
       shakheType: document.getElementById('shakhe-type').value,
       mukhashikshakPhone: personPhone(bearers.mukhashikshak),
