@@ -2838,10 +2838,10 @@ function nagaraExcludeSunday() {
 
 function programDayFilterLabel(programKind) {
   if (programKind === 'sharirik') {
-    return 'ಶಾರೀರಿಕ ಬಿಂದುಗಳು ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Sharirik points days happened';
+    return 'ಶಾರೀರಿಕ ಬಿಂದುಗಳು ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Sharirik bindugalu how many days happened';
   }
   if (programKind === 'boudhik') {
-    return 'ಬೌದ್ಧಿಕ್ ಬಿಂದುಗಳು ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Boudhik points days happened';
+    return 'ಬೌದ್ಧಿಕ್ ಬಿಂದುಗಳು ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Boudhik bindugalu how many days happened';
   }
   return 'ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Number of days happened';
 }
@@ -3575,8 +3575,8 @@ function programShakheYesNo(hasItem, kind, shakheId) {
   return hasItem
     ? shakheId
       ? `<button type="button" class="program-check-yes num-link" data-program-hit-id="${escapeHtml(
-          shakheId
-        )}">${stackedLabel('ಹೌದು/Yes')}</button>`
+        shakheId
+      )}">${stackedLabel('ಹೌದು/Yes')}</button>`
       : `<span class="program-check-yes">${stackedLabel('ಹೌದು/Yes')}</span>`
     : `<span class="program-check-no">${stackedLabel('ಇಲ್ಲ/No')}</span>`;
 }
