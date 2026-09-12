@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=20260910w">
+  <link rel="stylesheet" href="/styles.css?v=20260912z">
 </head>
 
 <body>
@@ -412,6 +412,13 @@
         <span id="report-nagar"></span>
       </p>
     </div>
+    <div class="report-download" data-download-menu>
+      <button type="button" class="secondary download-trigger" id="nagara-download-btn" aria-expanded="false">⬇ ಡೌನ್‌ಲೋಡ್/Download</button>
+      <div class="download-menu hidden" role="menu">
+        <button type="button" data-report-download="pdf" role="menuitem">PDF ಡೌನ್‌ಲೋಡ್/Download PDF</button>
+        <button type="button" data-report-download="xlsx" role="menuitem">Excel ಡೌನ್‌ಲೋಡ್/Download Excel</button>
+      </div>
+    </div>
     <div class="count-row">
       <div class="field">
         <label for="nagara-varadi-from">ಇಂದಿನಿಂದ/From</label>
@@ -443,6 +450,13 @@
   <section id="nagara-list-view" class="card wide table-card hidden">
     <button type="button" class="back-link" id="nagara-list-back">&larr; ಹಿಂದೆ/Back</button>
     <h1 id="nagara-list-title" class="report-title">ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati</h1>
+    <div class="report-download" data-download-menu>
+      <button type="button" class="secondary download-trigger" aria-expanded="false">⬇ ಡೌನ್‌ಲೋಡ್/Download</button>
+      <div class="download-menu hidden" role="menu">
+        <button type="button" data-report-download="pdf" role="menuitem">PDF ಡೌನ್‌ಲೋಡ್/Download PDF</button>
+        <button type="button" data-report-download="xlsx" role="menuitem">Excel ಡೌನ್‌ಲೋಡ್/Download Excel</button>
+      </div>
+    </div>
     <p id="nagara-list-error" class="error hidden"></p>
     <div id="nagara-list-loading" class="report-loading hidden" aria-live="polite">ಲೋಡ್ ಆಗುತ್ತಿದೆ/Loading…</div>
     <div id="nagara-list-body" class="table-wrap"></div>
@@ -462,6 +476,13 @@
     <h1>ಶಾಖೆ ವರದಿ/Shakhe Varadi</h1>
     <p id="varadi-path" class="username"></p>
     <h2 id="varadi-linked" class="shakhe-head"></h2>
+    <div class="report-download" data-download-menu>
+      <button type="button" class="secondary download-trigger" id="shakhe-download-btn" aria-expanded="false">⬇ ಡೌನ್‌ಲೋಡ್/Download</button>
+      <div class="download-menu hidden" role="menu">
+        <button type="button" data-shakhe-download="pdf" role="menuitem">PDF ಡೌನ್‌ಲೋಡ್/Download PDF</button>
+        <button type="button" data-shakhe-download="xlsx" role="menuitem">Excel ಡೌನ್‌ಲೋಡ್/Download Excel</button>
+      </div>
+    </div>
     <button type="button" id="varadi-switch-shakhe" class="secondary switch-shakhe hidden">ಶಾಖೆ ಬದಲಾಯಿಸಿ/Switch shakhe</button>
     <p id="varadi-error" class="error hidden"></p>
     <div class="count-row">
@@ -667,8 +688,15 @@
     <button type="button" id="phone-logout" class="mast-out">ನಿರ್ಗಮಿಸಿ/Sign out</button>
   </footer>
 </div>
+  <div id="download-progress" class="download-progress hidden" role="status" aria-live="assertive" aria-busy="true">
+    <div class="download-progress-box">
+      <span class="download-progress-spinner" aria-hidden="true"></span>
+      <p id="download-progress-message">Excel is downloading…</p>
+      <small>ದಯವಿಟ್ಟು ಕಾಯಿರಿ/Please wait</small>
+    </div>
+  </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/app.js?v=20260910w"></script>
+  <script src="/app.js?v=20260912z"></script>
 </body>
 </html>

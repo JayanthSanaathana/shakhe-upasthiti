@@ -11,6 +11,7 @@ const hierarchy = require('./lib/hierarchy');
 const shakheService = require('./lib/shakheService');
 const upasthitiService = require('./lib/upasthitiService');
 const shakheVaradiReport = require('./lib/shakheVaradiReport');
+const reportExport = require('./lib/reportExport');
 const { searchPeople } = require('./lib/peopleSearch');
 const { isObjectId, scalar, isSthara, clipText, phoneQuery, MAX_GEOCODE } = require('./lib/safe');
 const nagaraAuth = require('./lib/nagaraAuth');
@@ -588,6 +589,41 @@ function mountParentReportRoutes(level) {
 mountParentReportRoutes('prant');
 mountParentReportRoutes('vibhag');
 mountParentReportRoutes('bhag');
+
+app.get('/api/varadi/export', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  const level = scalar(req.query.level) || session.level;
+  const entityId = scalar(req.query.entityId) || session.entityId;
+  const format = scalar(req.query.format) === 'pdf' ? 'pdf' : 'xlsx';
+  const kind = ['shakhe', 'boudhik', 'sharirik'].includes(scalar(req.query.kind)) ? scalar(req.query.kind) : 'shakhe';
+  if (!['prant', 'vibhag', 'bhag', 'nagara'].includes(level) || !isObjectId(entityId)) {
+    return res.status(400).json({ error: 'Invalid report scope' });
+  }
+  if (!(await varadiAuth.canAccessEntity(session, entityId))) {
+    return res.status(403).json({ error: 'Not allowed for this entity' });
+  }
+  const result = await reportExport.exportHierarchy({
+    level, entityId, format, kind,
+    from: scalar(req.query.from), to: scalar(req.query.to),
+    excludeSunday: scalar(req.query.excludeSunday) === '1' || scalar(req.query.excludeSunday) === 'true',
+    itemDayCount: scalar(req.query.itemDayCount) || null,
+  });
+  const safeBase = `varadi-${level}-${String(req.query.from || '')}-${String(req.query.to || '')}`.replace(/[^a-zA-Z0-9_-]/g, '-');
+  res.set({ 'Content-Type': result.contentType, 'Content-Disposition': `attachment; filename="${safeBase}.${result.extension}"` });
+  res.send(result.buffer);
+}));
+
+app.get('/api/upasthiti/export', limitRead, asyncRoute(async (req, res) => {
+  const format = scalar(req.query.format) === 'pdf' ? 'pdf' : 'xlsx';
+  const data = await upasthitiService.loadForRange(
+    scalar(req.query.shakheId), phoneQuery(req.query.confirmPhone), scalar(req.query.from), scalar(req.query.to)
+  );
+  if (data.error) return res.status(data.status || 400).json({ error: data.error });
+  const result = await reportExport.exportSingleShakhe({ shakhe: data.shakhe, days: data.days, from: data.from, to: data.to, format });
+  const safeBase = `shakhe-varadi-${data.from}-${data.to}`;
+  res.set({ 'Content-Type': result.contentType, 'Content-Disposition': `attachment; filename="${safeBase}.${result.extension}"` });
+  res.send(result.buffer);
+}));
 
 app.get('/api/shakhe/by-upavasati', limitRead, asyncRoute(async (req, res) => {
   const upavasatiId = scalar(req.query.upavasatiId);

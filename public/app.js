@@ -2927,6 +2927,99 @@ function setNagaraListLoading(on) {
   if (loading) loading.classList.toggle('hidden', !on);
 }
 
+function closeDownloadMenus(except) {
+  document.querySelectorAll('[data-download-menu]').forEach((wrap) => {
+    if (wrap === except) return;
+    const menu = wrap.querySelector('.download-menu');
+    const trigger = wrap.querySelector('.download-trigger');
+    if (menu) menu.classList.add('hidden');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function setDownloadProgress(on, url) {
+  const overlay = document.getElementById('download-progress');
+  const message = document.getElementById('download-progress-message');
+  if (!overlay) return;
+  if (on && message) {
+    message.textContent = url && url.includes('format=pdf')
+      ? 'PDF is downloading…'
+      : 'Excel is downloading…';
+  }
+  overlay.classList.toggle('hidden', !on);
+  document.body.setAttribute('aria-busy', on ? 'true' : 'false');
+}
+
+async function downloadReportFile(url, errorEl, trigger) {
+  if (trigger && trigger.classList.contains('is-downloading')) return;
+  if (errorEl) errorEl.classList.add('hidden');
+  if (trigger) {
+    trigger.classList.add('is-downloading');
+    trigger.disabled = true;
+  }
+  closeDownloadMenus();
+  setDownloadProgress(true, url);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (bounceIfVaradiAuth(res, data) || bounceIfPhoneAuth(res, data)) return;
+      throw new Error(data.error || 'Download failed');
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const fallback = url.includes('format=pdf') ? 'varadi.pdf' : 'varadi.xlsx';
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = match ? match[1] : fallback;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (err) {
+    if (errorEl) {
+      errorEl.textContent = `${err && err.message ? err.message : 'Download failed'}/ಡೌನ್‌ಲೋಡ್ ಆಗಲಿಲ್ಲ`;
+      errorEl.classList.remove('hidden');
+    }
+  } finally {
+    setDownloadProgress(false);
+    if (trigger) {
+      trigger.classList.remove('is-downloading');
+      trigger.disabled = false;
+    }
+  }
+}
+
+function hierarchyExportUrl(format) {
+  const range = nagaraVaradiRangeDays();
+  const params = new URLSearchParams({
+    format,
+    level: reportScopeLevel || sessionLevel || 'nagara',
+    entityId: reportScopeEntityId || sessionEntityId || nagaraId || '',
+    kind: nagaraReportKind || 'shakhe',
+    from: range.from,
+    to: range.to,
+  });
+  if (range.excludeSunday) params.set('excludeSunday', '1');
+  const itemDayCount = nagaraProgramItemDayCount();
+  if (itemDayCount && nagaraReportKind !== 'shakhe') params.set('itemDayCount', itemDayCount);
+  return `/api/varadi/export?${params.toString()}`;
+}
+
+function shakheExportUrl(format) {
+  const range = varadiRangeDays();
+  const params = new URLSearchParams({
+    format,
+    shakheId: linkedShakhe && linkedShakhe.id || '',
+    confirmPhone: confirmPhone || '',
+    from: range.from,
+    to: range.to,
+  });
+  return `/api/upasthiti/export?${params.toString()}`;
+}
+
 /** Match server sarisumaru: exact ints stay; otherwise round up. */
 function formatAvg(value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
@@ -6275,6 +6368,36 @@ document.getElementById('upasthiti-date').addEventListener('change', () => {
     varadiRangeDays();
     if (linkedShakhe) loadVaradiRange();
   });
+});
+
+document.querySelectorAll('[data-download-menu]').forEach((wrap) => {
+  const trigger = wrap.querySelector('.download-trigger');
+  const menu = wrap.querySelector('.download-menu');
+  if (!trigger || !menu) return;
+  trigger.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const willOpen = menu.classList.contains('hidden');
+    closeDownloadMenus(willOpen ? wrap : null);
+    menu.classList.toggle('hidden', !willOpen);
+    trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  });
+});
+document.addEventListener('click', () => closeDownloadMenus());
+document.querySelectorAll('[data-report-download]').forEach((btn) => {
+  btn.addEventListener('click', () => downloadReportFile(
+    hierarchyExportUrl(btn.getAttribute('data-report-download') || 'xlsx'),
+    currentView === nagaraListView
+      ? document.getElementById('nagara-list-error')
+      : document.getElementById('nagara-report-error'),
+    btn.closest('[data-download-menu]')?.querySelector('.download-trigger') || document.getElementById('nagara-download-btn')
+  ));
+});
+document.querySelectorAll('[data-shakhe-download]').forEach((btn) => {
+  btn.addEventListener('click', () => downloadReportFile(
+    shakheExportUrl(btn.getAttribute('data-shakhe-download') || 'xlsx'),
+    document.getElementById('varadi-error'),
+    document.getElementById('shakhe-download-btn')
+  ));
 });
 
 document.getElementById('saved-step-next').addEventListener('click', () => setSavedStep(2));
