@@ -320,10 +320,10 @@ app.get('/api/options', limitRead, asyncRoute(async (req, res) => {
 
 app.get('/api/shakhe', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
   const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
+  if (!session || !['prant', 'vibhag', 'bhag', 'nagara'].includes(session.level)) {
+    return res.status(401).json({ error: 'Varadi login required' });
   }
-  const result = await shakheService.listForNagara(session.entityId);
+  const result = await shakheService.listForScope(session.level, session.entityId);
   if (result.error) return res.status(400).json({ error: result.error });
   res.json(result);
 }));
@@ -733,12 +733,13 @@ app.get('/api/shakhe/:id', limitRead, asyncRoute(async (req, res) => {
 
 app.post('/api/shakhe/:id/report-hide', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
   const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
+  if (!session || !['prant', 'vibhag', 'bhag', 'nagara'].includes(session.level)) {
+    return res.status(401).json({ error: 'Varadi login required' });
   }
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const result = await shakheService.setReportHidden(
     scalar(req.params.id),
+    session.level,
     session.entityId,
     true,
     scalar(body.date) || undefined
@@ -750,12 +751,13 @@ app.post('/api/shakhe/:id/report-hide', varadiAuth.requireSession, limitWrite, a
 
 app.post('/api/shakhe/:id/report-unhide', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
   const session = req.varadiSession;
-  if (!session || session.level !== 'nagara') {
-    return res.status(401).json({ error: 'Nagara login required' });
+  if (!session || !['prant', 'vibhag', 'bhag', 'nagara'].includes(session.level)) {
+    return res.status(401).json({ error: 'Varadi login required' });
   }
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const result = await shakheService.setReportHidden(
     scalar(req.params.id),
+    session.level,
     session.entityId,
     false,
     scalar(body.date) || undefined
@@ -763,6 +765,26 @@ app.post('/api/shakhe/:id/report-unhide', varadiAuth.requireSession, limitWrite,
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   await writeAudit(req, 'shakhe.report_unhide', { recordKind: 'shakhes', recordId: result.shakhe.id });
   res.json(result.shakhe);
+}));
+
+app.delete('/api/shakhe/:id', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  if (!session || !['prant', 'vibhag', 'bhag', 'nagara'].includes(session.level)) {
+    return res.status(401).json({ error: 'Varadi login required' });
+  }
+  const result = await shakheService.archiveAndDeleteShakhe(
+    scalar(req.params.id),
+    session.level,
+    session.entityId,
+    { ip: audit.clientIp(req) }
+  );
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  await writeAudit(req, 'shakhe.delete_archive', {
+    recordKind: 'deletedshakhes',
+    recordId: result.shakheId,
+    detail: `upasthiti:${result.upasthitiCount}`,
+  });
+  res.json(result);
 }));
 
 app.put('/api/shakhe/:id', varadiAuth.requireSession, limitWrite, asyncRoute(async (req, res) => {

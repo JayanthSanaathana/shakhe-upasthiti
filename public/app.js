@@ -870,10 +870,8 @@ function syncHomeActionsForLevel(level) {
   const nagaraActions = document.getElementById('nagara-actions');
   if (!nagaraActions) return;
   const createBtn = document.getElementById('open-form-btn');
-  const listBtn = document.getElementById('open-list-btn');
   const isNagara = level === 'nagara';
   if (createBtn) createBtn.classList.toggle('hidden', level && !isNagara);
-  if (listBtn) listBtn.classList.toggle('hidden', level && !isNagara);
 }
 
 function resetReportScopeToSession() {
@@ -1671,6 +1669,9 @@ async function openEditShakhe(id) {
 }
 
 const listFilters = {
+  vibhagId: '',
+  bhagId: '',
+  nagarId: '',
   vasatiId: '',
   upavasatiId: '',
   shakheType: '',
@@ -1706,17 +1707,45 @@ function uniqueEntityOptions(rows, getter) {
 }
 
 function refreshListFilterOptions() {
+  const vibhagEl = document.getElementById('list-filter-vibhag');
+  const bhagEl = document.getElementById('list-filter-bhag');
+  const nagarEl = document.getElementById('list-filter-nagar');
   const vasatiEl = document.getElementById('list-filter-vasati');
   const upavasatiEl = document.getElementById('list-filter-upavasati');
   const typeEl = document.getElementById('list-filter-type');
   const timingEl = document.getElementById('list-filter-timing');
-  const vasatiOptions = uniqueEntityOptions(listShakhes, (s) => s.vasati);
+  document.querySelectorAll('[data-list-upper-filter]').forEach((el) => {
+    el.classList.toggle('hidden', sessionLevel === 'nagara');
+  });
+
+  const vibhagOptions = uniqueEntityOptions(listShakhes, (s) => s.vibhag);
+  fillFilterSelect(vibhagEl, vibhagOptions, listFilters.vibhagId);
+  listFilters.vibhagId = vibhagEl ? vibhagEl.value : '';
+
+  const bhagSource = listFilters.vibhagId
+    ? listShakhes.filter((s) => s.vibhag && String(s.vibhag.id) === listFilters.vibhagId)
+    : listShakhes;
+  const bhagOptions = uniqueEntityOptions(bhagSource, (s) => s.bhag);
+  fillFilterSelect(bhagEl, bhagOptions, listFilters.bhagId);
+  listFilters.bhagId = bhagEl ? bhagEl.value : '';
+
+  const nagarSource = bhagSource.filter(
+    (s) => !listFilters.bhagId || (s.bhag && String(s.bhag.id) === listFilters.bhagId)
+  );
+  const nagarOptions = uniqueEntityOptions(nagarSource, (s) => s.nagar);
+  fillFilterSelect(nagarEl, nagarOptions, listFilters.nagarId);
+  listFilters.nagarId = nagarEl ? nagarEl.value : '';
+
+  const vasatiSource = nagarSource.filter(
+    (s) => !listFilters.nagarId || (s.nagar && String(s.nagar.id) === listFilters.nagarId)
+  );
+  const vasatiOptions = uniqueEntityOptions(vasatiSource, (s) => s.vasati);
   fillFilterSelect(vasatiEl, vasatiOptions, listFilters.vasatiId);
   listFilters.vasatiId = vasatiEl ? vasatiEl.value : '';
 
   const upavasatiSource = listFilters.vasatiId
-    ? listShakhes.filter((s) => s.vasati && String(s.vasati.id) === listFilters.vasatiId)
-    : listShakhes;
+    ? vasatiSource.filter((s) => s.vasati && String(s.vasati.id) === listFilters.vasatiId)
+    : vasatiSource;
   const upavasatiOptions = uniqueEntityOptions(upavasatiSource, (s) => s.upavasati);
   fillFilterSelect(upavasatiEl, upavasatiOptions, listFilters.upavasatiId);
   listFilters.upavasatiId = upavasatiEl ? upavasatiEl.value : '';
@@ -1732,6 +1761,9 @@ function refreshListFilterOptions() {
 
 function filteredListShakhes() {
   return (listShakhes || []).filter((s) => {
+    if (listFilters.vibhagId && !(s.vibhag && String(s.vibhag.id) === listFilters.vibhagId)) return false;
+    if (listFilters.bhagId && !(s.bhag && String(s.bhag.id) === listFilters.bhagId)) return false;
+    if (listFilters.nagarId && !(s.nagar && String(s.nagar.id) === listFilters.nagarId)) return false;
     if (listFilters.vasatiId && !(s.vasati && String(s.vasati.id) === listFilters.vasatiId)) return false;
     if (listFilters.upavasatiId && !(s.upavasati && String(s.upavasati.id) === listFilters.upavasatiId)) {
       return false;
@@ -1743,6 +1775,9 @@ function filteredListShakhes() {
 }
 
 function readListFiltersFromDom() {
+  listFilters.vibhagId = document.getElementById('list-filter-vibhag').value || '';
+  listFilters.bhagId = document.getElementById('list-filter-bhag').value || '';
+  listFilters.nagarId = document.getElementById('list-filter-nagar').value || '';
   listFilters.vasatiId = document.getElementById('list-filter-vasati').value || '';
   listFilters.upavasatiId = document.getElementById('list-filter-upavasati').value || '';
   listFilters.shakheType = document.getElementById('list-filter-type').value || '';
@@ -1951,8 +1986,10 @@ function locationCellHtml(s) {
 function shakheListHeadHtml(opts) {
   const withCheck = !!(opts && opts.withCheck);
   const withUnhide = !!(opts && opts.withUnhide);
+  const withDelete = !!(opts && opts.withDelete);
+  const withHierarchy = !!(opts && opts.withHierarchy);
   const omitPlace = !!(opts && opts.omitPlace);
-  const cols = omitPlace
+  let cols = omitPlace
     ? [
       'ಶಾಖೆ/Shakhe',
       'ಸಮಯ/Timing',
@@ -1969,17 +2006,23 @@ function shakheListHeadHtml(opts) {
       'ಸ್ಥಳ/Sthala',
       'ತಿದ್ದುಪಡಿ/Edit',
     ];
+  if (withHierarchy && !omitPlace) {
+    cols = ['ವಿಭಾಗ/Vibhag', 'ಜಿಲ್ಲಾ/ಭಾಗ/Bhag', 'ತಾಲ್ಲೂಕು/ನಗರ/Nagara', ...cols];
+  }
   const checkTh = withCheck ? '<th class="col-check"></th>' : '';
+  const deleteTh = withDelete ? `<th>${stackedLabel('ಅಳಿಸಿ/Delete')}</th>` : '';
   const unhideTh = withUnhide ? `<th>${stackedLabel('ತೋರಿಸು/Unhide')}</th>` : '';
   return (
     `<thead><tr>${checkTh}` +
-    cols.map((label) => `<th>${stackedLabel(label)}</th>`).join('') +
+    cols.map((label) => `<th>${stackedLabel(label)}</th>`).join('') + deleteTh +
     `${unhideTh}</tr></thead>`
   );
 }
 
 function shakheListCells(s, opts) {
   const omitPlace = !!(opts && opts.omitPlace);
+  const withDelete = !!(opts && opts.withDelete);
+  const withHierarchy = !!(opts && opts.withHierarchy);
   const timing = TIMING_LABEL[s.timing] || s.timing || '—';
   const time = s.time || '';
   const timingHtml = time
@@ -1987,6 +2030,11 @@ function shakheListCells(s, opts) {
     : escapeHtml(timing);
   const nagarAttr = (s.nagar && s.nagar.id) || '';
   const plainName = !!(opts && opts.plainName);
+  const hierarchyCells = withHierarchy
+    ? `<td class="cell-text">${escapeHtml((s.vibhag && s.vibhag.name) || '—')}</td>` +
+      `<td class="cell-text">${escapeHtml((s.bhag && s.bhag.name) || '—')}</td>` +
+      `<td class="cell-text">${escapeHtml((s.nagar && s.nagar.name) || '—')}</td>`
+    : '';
   const place =
     omitPlace
       ? ''
@@ -1998,12 +2046,42 @@ function shakheListCells(s, opts) {
       s.id
     )}" data-nagar-id="${escapeHtml(nagarAttr)}">${escapeHtml(s.name || '—')}</button></td>`;
   return (
+    hierarchyCells +
     place +
     nameCell +
     `<td class="cell-timing">${timingHtml}</td>` +
     `<td class="cell-text">${escapeHtml(TYPE_LABEL[s.shakheType] || s.shakheType || '—')}</td>` +
     `<td class="cell-text">${escapeHtml(s.stanaName || 'ಇಲ್ಲ/Not set')}</td>` +
-    `<td><button type="button" class="edit-link" data-edit-id="${escapeHtml(s.id)}"><span class="th-stack"><span class="th-kn">ತಿದ್ದುಪಡಿ</span><span class="th-en">Edit</span></span></button></td>`
+    `<td><button type="button" class="edit-link" data-edit-id="${escapeHtml(s.id)}"><span class="th-stack"><span class="th-kn">ತಿದ್ದುಪಡಿ</span><span class="th-en">Edit</span></span></button></td>` +
+    (withDelete
+      ? `<td><button type="button" class="delete-link" data-delete-id="${escapeHtml(s.id)}" data-delete-name="${escapeHtml(s.name || '')}"><span class="th-stack"><span class="th-kn">ಅಳಿಸಿ</span><span class="th-en">Delete</span></span></button></td>`
+      : '')
+  );
+}
+
+async function deleteShakheFromList(button) {
+  const id = button.getAttribute('data-delete-id');
+  const name = button.getAttribute('data-delete-name') || 'this Shakhe';
+  const confirmed = window.confirm(
+    `${name} ಅನ್ನು ಅಳಿಸಬೇಕೇ?\n\nDelete ${name}? The Shakhe and all daily Upasthiti data will be removed from active reports and saved in the deleted archive for recovery.`
+  );
+  if (!confirmed) return;
+
+  button.disabled = true;
+  const res = await fetch(`/api/shakhe/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (bounceIfVaradiAuth(res, data)) return;
+  if (!res.ok) {
+    button.disabled = false;
+    window.alert(data.error || 'ಶಾಖೆಯನ್ನು ಅಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ/Could not delete Shakhe');
+    return;
+  }
+
+  listShakhes = listShakhes.filter((s) => String(s.id) !== String(id));
+  refreshListFilterOptions();
+  paintShakheList();
+  window.alert(
+    `ಶಾಖೆಯನ್ನು ಅಳಿಸಿ ಸಂಗ್ರಹಿಸಲಾಗಿದೆ/Shakhe deleted and archived.\nDaily Upasthiti records archived: ${Number(data.upasthitiCount) || 0}`
   );
 }
 
@@ -2012,12 +2090,14 @@ function paintShakheList() {
   const filtered = filteredListShakhes();
   const visible = filtered.filter((s) => !isReportHidden(s));
   const hiddenItems = filtered.filter((s) => isReportHidden(s));
-  const head = shakheListHeadHtml({ withCheck: true });
+  const withHierarchy = sessionLevel !== 'nagara';
+  const head = shakheListHeadHtml({ withCheck: true, withDelete: true, withHierarchy });
   const visibleRows = visible
     .map(
       (s) =>
         `<tr><td class="col-check"><input type="checkbox" data-hide-id="${escapeHtml(s.id)}"></td>${shakheListCells(
-          s
+          s,
+          { withDelete: true, withHierarchy }
         )}</tr>`
     )
     .join('');
@@ -2025,10 +2105,10 @@ function paintShakheList() {
     ? `<table class="varadi-table shakhe-list-table">${head}<tbody>${visibleRows}</tbody></table>`
     : '<p class="username">ತೋರಿಸುವ ಶಾಖೆಗಳಿಲ್ಲ/No visible shakhes</p>';
   const hiddenTable = hiddenItems.length
-    ? `<table class="varadi-table shakhe-list-table">${shakheListHeadHtml({ withUnhide: true })}<tbody>${hiddenItems
+    ? `<table class="varadi-table shakhe-list-table">${shakheListHeadHtml({ withUnhide: true, withDelete: true, withHierarchy })}<tbody>${hiddenItems
       .map(
         (s) =>
-          `<tr>${shakheListCells(s)}<td><button type="button" class="secondary" data-unhide-id="${escapeHtml(
+          `<tr>${shakheListCells(s, { withDelete: true, withHierarchy })}<td><button type="button" class="secondary" data-unhide-id="${escapeHtml(
             s.id
           )}">ತೋರಿಸು/Unhide</button></td></tr>`
       )
@@ -2046,6 +2126,9 @@ function paintShakheList() {
   });
   body.querySelectorAll('button[data-edit-id]').forEach((btn) => {
     btn.addEventListener('click', () => openEditShakhe(btn.getAttribute('data-edit-id')));
+  });
+  body.querySelectorAll('button[data-delete-id]').forEach((btn) => {
+    btn.addEventListener('click', () => deleteShakheFromList(btn));
   });
   const hideBtn = body.querySelector('[data-list-hide]');
   const toggleBtn = body.querySelector('[data-list-hidden-toggle]');
@@ -2300,6 +2383,30 @@ document.getElementById('form-back').addEventListener('click', () => {
   showHome();
 });
 document.getElementById('list-back').addEventListener('click', showHome);
+document.getElementById('list-filter-vibhag').addEventListener('change', () => {
+  readListFiltersFromDom();
+  listFilters.bhagId = '';
+  listFilters.nagarId = '';
+  listFilters.vasatiId = '';
+  listFilters.upavasatiId = '';
+  refreshListFilterOptions();
+  paintShakheList();
+});
+document.getElementById('list-filter-bhag').addEventListener('change', () => {
+  readListFiltersFromDom();
+  listFilters.nagarId = '';
+  listFilters.vasatiId = '';
+  listFilters.upavasatiId = '';
+  refreshListFilterOptions();
+  paintShakheList();
+});
+document.getElementById('list-filter-nagar').addEventListener('change', () => {
+  readListFiltersFromDom();
+  listFilters.vasatiId = '';
+  listFilters.upavasatiId = '';
+  refreshListFilterOptions();
+  paintShakheList();
+});
 document.getElementById('list-filter-vasati').addEventListener('change', () => {
   readListFiltersFromDom();
   listFilters.upavasatiId = '';
