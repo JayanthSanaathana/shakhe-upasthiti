@@ -913,7 +913,9 @@ connectMongo()
       }
     }
     await VaradiSession.syncIndexes();
-    app.listen(PORT, () => console.log(`Shakhe Upasthiti running on http://localhost:${PORT}`));
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Shakhe Upasthiti running on 0.0.0.0:${PORT}`);
+    });
   })
   .catch((err) => {
     const redactMongoCredentials = (value) => String(value || '')

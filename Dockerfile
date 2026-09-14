@@ -13,7 +13,7 @@ ENV NODE_ENV=production
 # an exit node is selected (tailscale/tailscale#20204). Use the official
 # 1.103 build containing the fix until it reaches the stable channel.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl iptables \
+  && apt-get install -y --no-install-recommends ca-certificates curl iptables openssh-client \
   && curl -fsSL https://pkgs.tailscale.com/unstable/debian/bookworm.noarmor.gpg \
     | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null \
   && curl -fsSL https://pkgs.tailscale.com/unstable/debian/bookworm.tailscale-keyring.list \
