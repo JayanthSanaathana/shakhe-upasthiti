@@ -916,6 +916,24 @@ connectMongo()
     app.listen(PORT, () => console.log(`Shakhe Upasthiti running on http://localhost:${PORT}`));
   })
   .catch((err) => {
-    console.error('Mongo connect failed:', err && err.message ? err.message : err);
+    const redactMongoCredentials = (value) => String(value || '')
+      .replace(/mongodb(?:\+srv)?:\/\/[^@\s]+@/gi, 'mongodb://***@');
+    console.error(
+      `Mongo connect failed (${err && err.mongoConnectionTarget ? err.mongoConnectionTarget : 'unknown'}):`,
+      redactMongoCredentials(err && err.message ? err.message : err)
+    );
+    if (err && err.reason && err.reason.servers instanceof Map) {
+      for (const [address, description] of err.reason.servers) {
+        const serverError = description && description.error;
+        console.error(
+          `Mongo server ${address}:`,
+          redactMongoCredentials(
+            serverError && serverError.message
+              ? serverError.message
+              : description && description.type
+          )
+        );
+      }
+    }
     process.exit(1);
   });

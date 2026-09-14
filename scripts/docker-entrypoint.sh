@@ -21,6 +21,15 @@ egress_ready() {
     https://api.ipify.org
 }
 
+egress_is_expected() {
+  EGRESS_IP="$(egress_ready 2>/dev/null)" || return 1
+  if [ -n "${TS_EXPECTED_EGRESS_IP:-}" ] && [ "$EGRESS_IP" != "$TS_EXPECTED_EGRESS_IP" ]; then
+    echo "Waiting for exit node; current public-ip=$EGRESS_IP" >&2
+    return 1
+  fi
+  return 0
+}
+
 start_tailscale() {
   if [ -z "${TS_AUTHKEY:-}" ]; then
     echo "TS_AUTHKEY not set — starting app without Tailscale SOCKS egress"
@@ -73,7 +82,7 @@ start_tailscale() {
   export MONGO_SOCKS_PROXY="${MONGO_SOCKS_PROXY:-${SOCKS_HOST}:${SOCKS_PORT}}"
   i=0
   while [ "$i" -lt 30 ]; do
-    if EGRESS_IP="$(egress_ready 2>/dev/null)"; then
+    if egress_is_expected; then
       echo "Tailscale egress ready; public-ip=$EGRESS_IP"
       break
     fi
