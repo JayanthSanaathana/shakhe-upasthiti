@@ -9,13 +9,16 @@ SOCKS_PORT="${MONGO_SOCKS_PORT:-1055}"
 STATE_DIR="${TS_STATE_DIR:-/var/lib/tailscale}"
 SOCKET_DIR="${TS_SOCKET_DIR:-/tmp/tailscale}"
 
-socks_ready() {
-  node -e "
-const net = require('net');
-const s = net.connect({ host: process.env.H, port: Number(process.env.P) }, () => { s.end(); process.exit(0); });
-s.on('error', () => process.exit(1));
-setTimeout(() => process.exit(1), 1500);
-" 
+tailscale_ready() {
+  [ -S "${SOCKET_DIR}/tailscaled.sock" ]
+}
+
+egress_ready() {
+  curl --fail --silent --show-error \
+    --socks5-hostname "${SOCKS_HOST}:${SOCKS_PORT}" \
+    --connect-timeout 5 \
+    --max-time 10 \
+    https://api.ipify.org
 }
 
 start_tailscale() {
@@ -42,14 +45,14 @@ start_tailscale() {
 
   i=0
   while [ "$i" -lt 60 ]; do
-    if H="$SOCKS_HOST" P="$SOCKS_PORT" socks_ready; then
+    if tailscale_ready; then
       break
     fi
     i=$((i + 1))
     sleep 1
   done
-  if ! H="$SOCKS_HOST" P="$SOCKS_PORT" socks_ready; then
-    echo "Tailscale SOCKS5 did not become ready on ${SOCKS_HOST}:${SOCKS_PORT}" >&2
+  if ! tailscale_ready; then
+    echo "Tailscale daemon did not become ready" >&2
     exit 1
   fi
 
@@ -68,6 +71,20 @@ start_tailscale() {
     ${TS_EXTRA_ARGS:-}
 
   export MONGO_SOCKS_PROXY="${MONGO_SOCKS_PROXY:-${SOCKS_HOST}:${SOCKS_PORT}}"
+  i=0
+  while [ "$i" -lt 30 ]; do
+    if EGRESS_IP="$(egress_ready 2>/dev/null)"; then
+      echo "Tailscale egress ready; public-ip=$EGRESS_IP"
+      break
+    fi
+    i=$((i + 1))
+    sleep 2
+  done
+  if [ "$i" -ge 30 ]; then
+    echo "Tailscale exit-node egress did not become ready" >&2
+    exit 1
+  fi
+
   echo "Tailscale up; MONGO_SOCKS_PROXY=$MONGO_SOCKS_PROXY exit-node=$TS_EXIT_NODE"
   return 0
 }

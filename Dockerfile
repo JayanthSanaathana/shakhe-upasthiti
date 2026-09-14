@@ -9,14 +9,17 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Tailscale userspace needs the CLI binaries; keep image as root for tailscaled, then node drops via user if desired.
+# Tailscale 1.102 drops UDP replies made by the userspace SOCKS netstack when
+# an exit node is selected (tailscale/tailscale#20204). Use the official
+# 1.103 build containing the fix until it reaches the stable channel.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl iptables \
-  && curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg \
+  && curl -fsSL https://pkgs.tailscale.com/unstable/debian/bookworm.noarmor.gpg \
     | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null \
-  && curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.tailscale-keyring.list \
+  && curl -fsSL https://pkgs.tailscale.com/unstable/debian/bookworm.tailscale-keyring.list \
     | tee /etc/apt/sources.list.d/tailscale.list \
   && apt-get update \
-  && apt-get install -y --no-install-recommends tailscale \
+  && apt-get install -y --no-install-recommends tailscale=1.103.219 \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=deps /app/node_modules ./node_modules
