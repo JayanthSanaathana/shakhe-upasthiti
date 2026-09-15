@@ -23,7 +23,7 @@ This document intentionally contains no passwords, MongoDB URIs, Tailscale keys,
 ```text
 Static egress ready; public-ip=13.127.136.216
 ENTITY_MONGO_URI connected (read-only via SOCKS5 127.0.0.1:1055) db=kdpEntities
-Person models use MONGO_URI (read-only model hooks)
+Phone search uses read-only `ssdatas`, `sanghdatas`, and `entities` queries through `ENTITY_MONGO_URI`.
 Shakhe Upasthiti running on 0.0.0.0:8080
 ```
 
@@ -35,9 +35,9 @@ There are three logical database variables:
 |---|---|
 | `MONGO_URI` | Writable application data: shakhes, attendance, sessions, audits, deleted shakhes, and related app collections. |
 | `ENTITY_MONGO_URI` | Read-only hierarchy and authorization master data in `kdpEntities`. |
-| `people` collection on `MONGO_URI` | Combined read-only phone/name directory. |
+| `people` collection on `MONGO_URI` | Retained combined directory; not used by current phone search. |
 
-Person lookup always uses the application `MONGO_URI`; external person models have Mongoose hooks that reject writes.
+Phone search reads source collections directly through the read-only entity connection. The retained `people` collection is not deleted and is available for future use.
 
 ### Read-only audit results (2026-09-15)
 
@@ -57,11 +57,11 @@ Entity database `kdpEntities`:
 - There is no `people` collection.
 - Representative Entity→Sthara, parent-child, and UserRole references resolved successfully.
 
-This explains the former phone-search failure: `Person` had accidentally been routed to `ENTITY_MONGO_URI`. Person lookup now uses the combined `people` collection on `MONGO_URI`, with live `sanghdatas.otherResponsibility` enrichment.
+Phone search now starts in `ENTITY_MONGO_URI.ssdatas`, joins `sanghdatas` through `ssData`, and resolves Nagar names from `entities`. Blank `otherResponsibility` displays as `Swayamsevak`.
 
 ### Model routing
 
-- `models/Person.js` → `getPersonModel()` → `MONGO_URI` (`people` collection)
+- `lib/peopleSearch.js` → `ENTITY_MONGO_URI` (`ssdatas` + `sanghdatas` + `entities`)
 - `Entity`, `ParentEntity`, `Sthara`, `Role`, `UserRole` → `getLiveModel()` → `ENTITY_MONGO_URI`
 - Shakhe, attendance, deletion archive, sessions, and audits → default Mongoose connection → `MONGO_URI`
 
@@ -205,7 +205,7 @@ Current production architecture:
 - Railway project alluring-warmth, service shakhe-upasthiti, production.
 - MONGO_URI is the writable app DB.
 - ENTITY_MONGO_URI is read-only hierarchy/roles in kdpEntities.
-- Person lookup reads the combined `people` collection from MONGO_URI; other responsibility is enriched from read-only sanghdatas.
+- Phone search reads `ssdatas`, `sanghdatas`, and `entities` from ENTITY_MONGO_URI; `people` is retained but unused.
 - Railway reaches Atlas through an SSH SOCKS tunnel via AWS static IP 13.127.136.216.
 - Production and public HTTP checks succeeded on 2026-09-15.
 
