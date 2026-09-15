@@ -1025,6 +1025,7 @@ async function selectBearerByPhone(key, blockId, phone, name) {
         personId: match.personId,
         name: match.name || name || '',
         phone: match.phone || phone,
+        otherResponsibility: match.otherResponsibility || '',
       });
     }
   } catch (_) { }
@@ -1057,7 +1058,12 @@ function bindBearerSearch(blockId, key) {
         const context = [personOtherResponsibility(p), p.nagarName, p.shakhe].filter(Boolean).join(', ');
         btn.textContent = context ? `${p.name} — ${p.phone} (${context})` : `${p.name} — ${p.phone}`;
         btn.addEventListener('click', () => {
-          selectBearer(key, blockId, { personId: p.personId, name: p.name, phone: p.phone });
+          selectBearer(key, blockId, {
+            personId: p.personId,
+            name: p.name,
+            phone: p.phone,
+            otherResponsibility: p.otherResponsibility || '',
+          });
           refreshSubmit();
           if (key === 'mukhashikshak') checkMukhashikshakShakhe(personPhone(bearers[key]));
           if (typeof refreshDailySubmit === 'function') refreshDailySubmit();
@@ -1124,9 +1130,10 @@ function addPravasiPerson(person) {
   if (pravasiPeople.length >= 20) return;
   pravasiPeople.push({
     personId: person.personId || null,
-    name: person.name || '',
-    phone: person.phone || phone,
-    responsibility: person.responsibility || '',
+      name: person.name || '',
+      phone: person.phone || phone,
+      responsibility: person.responsibility || '',
+      otherResponsibility: person.otherResponsibility || '',
     shakhe: person.shakhe || '',
     nagarName: person.nagarName || '',
   });
@@ -1178,6 +1185,7 @@ function bindPravasiMultiSearch() {
             name: p.name,
             phone: p.phone,
             responsibility: p.responsibility,
+            otherResponsibility: p.otherResponsibility,
             shakhe: p.shakhe,
             nagarName: p.nagarName,
           });
@@ -1922,7 +1930,7 @@ function personDetailHtml(person) {
   if (!person) return escapeHtml('—');
   const name = person.name || '';
   const phone = person.phone || '';
-  const responsibility = person.responsibility || '';
+  const responsibility = personOtherResponsibility(person);
   const place = [person.nagarName, person.shakhe].filter(Boolean).join(' · ');
   const title = name && phone ? `${name} — ${phone}` : name || phone || '—';
   let html = `<div class="pravasi-detail-name">${escapeHtml(title)}</div>`;
@@ -1939,7 +1947,7 @@ function personDetailText(person) {
   if (!person) return '—';
   const name = person.name || '';
   const phone = person.phone || '';
-  const responsibility = person.responsibility || '';
+  const responsibility = personOtherResponsibility(person);
   const base = name && phone ? `${name} — ${phone}` : name || phone || '—';
   return responsibility ? `${base} · ${responsibility}` : base;
 }
@@ -6038,6 +6046,7 @@ function personSnapPayload(person) {
     name: person.name || '',
     phone: person.phone || '',
     responsibility: person.responsibility || '',
+    otherResponsibility: person.otherResponsibility || '',
     shakhe: person.shakhe || '',
     nagarName: person.nagarName || '',
   };
@@ -6241,6 +6250,7 @@ function fillDaily(entry) {
       name: p.name || '',
       phone: p.phone || '',
       responsibility: p.responsibility || '',
+      otherResponsibility: p.otherResponsibility || '',
       shakhe: p.shakhe || '',
       nagarName: p.nagarName || '',
     }));

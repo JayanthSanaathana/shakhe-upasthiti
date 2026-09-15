@@ -16,6 +16,7 @@ const shakheUpasthitiSchema = new mongoose.Schema({
       name: { type: String, trim: true, default: null, maxlength: 80 },
       phone: { type: String, trim: true, default: null, maxlength: 15 },
       responsibility: { type: String, trim: true, default: null, maxlength: 120 },
+      otherResponsibility: { type: String, trim: true, default: null, maxlength: 120 },
       shakhe: { type: String, trim: true, default: null, maxlength: 80 },
       nagarName: { type: String, trim: true, default: null, maxlength: 80 },
     },
