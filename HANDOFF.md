@@ -6,7 +6,7 @@
 
 **Branch:** `master`
 
-**Latest application commit:** `449cb09` (`Add dedicated person database connection`)
+**Latest application commit:** `c2c51db` (`Preserve selected Nagar hierarchy during daily sync`)
 
 This document intentionally contains no passwords, MongoDB URIs, Tailscale keys, or SSH private-key contents.
 
