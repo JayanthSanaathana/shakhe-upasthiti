@@ -52,6 +52,14 @@ To read those five collections directly from `ENTITY_MONGO_URI`, set:
 ENTITY_REFERENCE_SOURCE=live
 ```
 
+If the developer entity database is missing corrected Upavasati names, set:
+
+```text
+ENTITY_LOCAL_HIERARCHY_OVERRIDE=true
+```
+
+This forces `entities` and `parententities` to stay on the local `MONGO_URI` copy and prevents synchronization from overwriting those two collections. Set it back to `false` after the developer data is corrected.
+
 `ssdatas` and `sanghdatas` use `ENTITY_MONGO_URI` by default because person and responsibility data can change. If the live connection is unavailable, all seven collections fall back to their persistent copies in `MONGO_URI`.
 
 ### Synchronization interval
