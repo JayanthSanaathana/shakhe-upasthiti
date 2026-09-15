@@ -52,13 +52,13 @@ To read those five collections directly from `ENTITY_MONGO_URI`, set:
 ENTITY_REFERENCE_SOURCE=live
 ```
 
-If the developer entity database is missing corrected Upavasati names, set:
+If the developer entity database is missing corrected Upavasati names for one Nagar, set:
 
 ```text
-ENTITY_LOCAL_HIERARCHY_OVERRIDE=true
+ENTITY_LOCAL_HIERARCHY_OVERRIDE_NAMES=JALAHALLI
 ```
 
-This forces `entities` and `parententities` to stay on the local `MONGO_URI` copy and prevents synchronization from overwriting those two collections. Set it back to `false` after the developer data is corrected.
+During the daily sync, the local `entities` and `parententities` records for that Nagar and all of its descendants (including Upavasatis) are preserved. All other Nagars and all `ssdatas`/`sanghdatas` records continue to sync from the developer database. Leave the variable empty after the developer data is corrected so the next sync refreshes Jalahalli too. The legacy `ENTITY_LOCAL_HIERARCHY_OVERRIDE=true` preserves the entire hierarchy and should only be used when that is intentional.
 
 `ssdatas` and `sanghdatas` use `ENTITY_MONGO_URI` by default because person and responsibility data can change. If the live connection is unavailable, all seven collections fall back to their persistent copies in `MONGO_URI`.
 
