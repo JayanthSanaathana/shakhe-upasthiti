@@ -974,6 +974,11 @@ function personPhone(person) {
   return d.length > 10 ? d.slice(-10) : d;
 }
 
+function personOtherResponsibility(person) {
+  const value = String((person && person.otherResponsibility) || '').trim();
+  return value || 'Swayamsevak';
+}
+
 function phoneOk(value, optional) {
   const d = String(value || '').replace(/\D/g, '');
   if (!d) return optional;
@@ -1049,7 +1054,7 @@ function bindBearerSearch(blockId, key) {
         const li = document.createElement('li');
         const btn = document.createElement('button');
         btn.type = 'button';
-        const context = [p.nagarName, p.responsibility, p.shakhe].filter(Boolean).join(', ');
+        const context = [personOtherResponsibility(p), p.nagarName, p.shakhe].filter(Boolean).join(', ');
         btn.textContent = context ? `${p.name} — ${p.phone} (${context})` : `${p.name} — ${p.phone}`;
         btn.addEventListener('click', () => {
           selectBearer(key, blockId, { personId: p.personId, name: p.name, phone: p.phone });
@@ -1165,7 +1170,7 @@ function bindPravasiMultiSearch() {
         const li = document.createElement('li');
         const btn = document.createElement('button');
         btn.type = 'button';
-        const context = [p.nagarName, p.responsibility, p.shakhe].filter(Boolean).join(', ');
+        const context = [personOtherResponsibility(p), p.nagarName, p.shakhe].filter(Boolean).join(', ');
         btn.textContent = context ? `${p.name} — ${p.phone} (${context})` : `${p.name} — ${p.phone}`;
         btn.addEventListener('click', () => {
           addPravasiPerson({
