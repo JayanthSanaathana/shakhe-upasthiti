@@ -39,7 +39,7 @@ There are three logical database variables:
 
 Phone search reads source collections directly through the read-only entity connection. The retained `people` collection is not deleted and is available for future use.
 
-The seven entity collections are periodically copied into the application database as a fallback cache. If `ENTITY_MONGO_URI` is unavailable, the same collection names in `MONGO_URI` are used automatically. The source entity database is never written. The interval is controlled by `ENTITY_CACHE_SYNC_INTERVAL_MINUTES` (default `1440`; set to `5` for rapid sync testing).
+The seven entity collections are periodically copied into the application database as a fallback cache. `ssdatas` and `sanghdatas` use `ENTITY_MONGO_URI` by default because person data may change. `entities`, `parententities`, `stharas`, `userroles`, and `roles` use the local cached copies by default to reduce latency. Set `ENTITY_REFERENCE_SOURCE=live` to read those five collections live instead. If the live connection is unavailable, all collections fall back to the local copies. The source entity database is never written. The interval is controlled by `ENTITY_CACHE_SYNC_INTERVAL_MINUTES` (default `1440`; set to `5` for rapid sync testing).
 
 ### Read-only audit results (2026-09-15)
 
