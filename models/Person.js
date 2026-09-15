@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { getLiveModel } = require('../lib/mongo');
+const { getPersonModel } = require('../lib/mongo');
 
 const personSchema = new mongoose.Schema({
   name: String,
@@ -9,4 +9,4 @@ const personSchema = new mongoose.Schema({
   nagarName: { type: String, default: null },
 });
 
-module.exports = getLiveModel('Person', personSchema, 'people');
+module.exports = getPersonModel('Person', personSchema, 'people');
