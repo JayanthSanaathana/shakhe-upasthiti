@@ -23,7 +23,7 @@ This document intentionally contains no passwords, MongoDB URIs, Tailscale keys,
 ```text
 Static egress ready; public-ip=13.127.136.216
 ENTITY_MONGO_URI connected (read-only via SOCKS5 127.0.0.1:1055) db=kdpEntities
-PERSON_MONGO_URI using MONGO_URI (read-only person models)
+Person models use MONGO_URI (read-only model hooks)
 Shakhe Upasthiti running on 0.0.0.0:8080
 ```
 
@@ -35,9 +35,9 @@ There are three logical database variables:
 |---|---|
 | `MONGO_URI` | Writable application data: shakhes, attendance, sessions, audits, deleted shakhes, and related app collections. |
 | `ENTITY_MONGO_URI` | Read-only hierarchy and authorization master data in `kdpEntities`. |
-| `PERSON_MONGO_URI` | Read-only person phone/name directory. It is currently set to the same URI as `MONGO_URI`. |
+| `people` collection on `MONGO_URI` | Combined read-only phone/name directory. |
 
-`lib/mongo.js` reuses an existing connection when two URI values are equal. It can also open a third connection if `PERSON_MONGO_URI` is later changed to a different URI. External models have Mongoose hooks that reject writes.
+Person lookup always uses the application `MONGO_URI`; external person models have Mongoose hooks that reject writes.
 
 ### Read-only audit results (2026-09-15)
 
@@ -57,11 +57,11 @@ Entity database `kdpEntities`:
 - There is no `people` collection.
 - Representative Entity→Sthara, parent-child, and UserRole references resolved successfully.
 
-This explains the former phone-search failure: `Person` had accidentally been routed to `ENTITY_MONGO_URI`. Commit `449cb09` introduced `PERSON_MONGO_URI` and fixed it.
+This explains the former phone-search failure: `Person` had accidentally been routed to `ENTITY_MONGO_URI`. Person lookup now uses the combined `people` collection on `MONGO_URI`, with live `sanghdatas.otherResponsibility` enrichment.
 
 ### Model routing
 
-- `models/Person.js` → `getPersonModel()` → `PERSON_MONGO_URI`
+- `models/Person.js` → `getPersonModel()` → `MONGO_URI` (`people` collection)
 - `Entity`, `ParentEntity`, `Sthara`, `Role`, `UserRole` → `getLiveModel()` → `ENTITY_MONGO_URI`
 - Shakhe, attendance, deletion archive, sessions, and audits → default Mongoose connection → `MONGO_URI`
 
@@ -104,7 +104,7 @@ Implementation:
 
 ## Important commits
 
-- `449cb09` — dedicated `PERSON_MONGO_URI` connection and corrected phone-search source
+- `449cb09` — corrected phone-search source and read-only person model routing
 - `6dd6ead` — reliable SSH static-egress tunnel and explicit `0.0.0.0` HTTP bind
 - `a1c8e70` — expected-egress verification and Mongo diagnostics
 - `3ff00fa` — earlier Tailscale userspace workaround
@@ -143,7 +143,7 @@ Do not run `railway variable list --json` or `--kv` in shared output because tho
 
 ## MongoDB Compass from another computer
 
-For person data, paste `PERSON_MONGO_URI` into Compass and open `upasthiti → people`.
+For person data, paste `MONGO_URI` into Compass and open `upasthiti → people`.
 
 For `ENTITY_MONGO_URI`, generate a device-specific SSH key on the new computer:
 
@@ -175,7 +175,7 @@ If port 22 times out only on the new computer, test another network or inspect t
 
 ## Safety and secrets
 
-- Do not write to `ENTITY_MONGO_URI` or `PERSON_MONGO_URI` during diagnostics.
+- Do not write to `ENTITY_MONGO_URI` or the `people` collection during diagnostics.
 - Use only `find`, aggregation, collection listing, counts, and metadata inspection unless the user explicitly authorizes a write.
 - Never point `MONGO_URI` at the owner/master entity database.
 - A MongoDB credential and an earlier Tailscale auth key were pasted in chat. Rotate/revoke them if not already completed.
@@ -205,7 +205,7 @@ Current production architecture:
 - Railway project alluring-warmth, service shakhe-upasthiti, production.
 - MONGO_URI is the writable app DB.
 - ENTITY_MONGO_URI is read-only hierarchy/roles in kdpEntities.
-- PERSON_MONGO_URI is read-only person lookup and currently equals MONGO_URI.
+- Person lookup reads the combined `people` collection from MONGO_URI; other responsibility is enriched from read-only sanghdatas.
 - Railway reaches Atlas through an SSH SOCKS tunnel via AWS static IP 13.127.136.216.
 - Production and public HTTP checks succeeded on 2026-09-15.
 
