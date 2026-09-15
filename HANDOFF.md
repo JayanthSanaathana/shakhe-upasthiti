@@ -39,6 +39,8 @@ There are three logical database variables:
 
 Phone search reads source collections directly through the read-only entity connection. The retained `people` collection is not deleted and is available for future use.
 
+The seven entity collections are periodically copied into the application database as a fallback cache. If `ENTITY_MONGO_URI` is unavailable, the same collection names in `MONGO_URI` are used automatically. The source entity database is never written.
+
 ### Read-only audit results (2026-09-15)
 
 Application database `upasthiti`:
@@ -62,6 +64,7 @@ Phone search now starts in `ENTITY_MONGO_URI.ssdatas`, joins `sanghdatas` throug
 ### Model routing
 
 - `lib/peopleSearch.js` → `ENTITY_MONGO_URI` (`ssdatas` + `sanghdatas` + `entities`)
+- `lib/entityCache.js` → periodic read-only source copy into the application database
 - `Entity`, `ParentEntity`, `Sthara`, `Role`, `UserRole` → `getLiveModel()` → `ENTITY_MONGO_URI`
 - Shakhe, attendance, deletion archive, sessions, and audits → default Mongoose connection → `MONGO_URI`
 
