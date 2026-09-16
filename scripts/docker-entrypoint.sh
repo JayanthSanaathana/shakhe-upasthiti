@@ -81,7 +81,10 @@ start_ssh_egress() {
   if ! wait_for_egress; then
     kill "$TUNNEL_PID" 2>/dev/null || true
     wait "$TUNNEL_PID" 2>/dev/null || true
-    exit 1
+    # Keep the application running so its local MONGO_URI entity cache can
+    # serve requests while the static egress host is unavailable.
+    unset MONGO_SOCKS_PROXY
+    return 1
   fi
   echo "SSH egress up; MONGO_SOCKS_PROXY=$MONGO_SOCKS_PROXY host=$SSH_EGRESS_HOST"
   return 0
