@@ -142,7 +142,10 @@ start_tailscale() {
   export MONGO_SOCKS_PROXY="${MONGO_SOCKS_PROXY:-${SOCKS_HOST}:${SOCKS_PORT}}"
   if ! wait_for_egress; then
     echo "Tailscale exit-node egress did not become ready" >&2
-    exit 1
+    # Keep the application running so its local MONGO_URI entity cache can
+    # serve requests while the exit node is unavailable.
+    unset MONGO_SOCKS_PROXY
+    return 1
   fi
 
   echo "Tailscale up; MONGO_SOCKS_PROXY=$MONGO_SOCKS_PROXY exit-node=$TS_EXIT_NODE"
