@@ -1723,6 +1723,19 @@ function uniqueEntityOptions(rows, getter) {
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'en'));
 }
 
+/** Vibhag/Bhag/Nagara columns+filters for Patti, scoped below the login level. */
+const LIST_UPPER_HIER_COLS = [
+  { key: 'vibhag', label: 'ವಿಭಾಗ/Vibhag' },
+  { key: 'bhag', label: 'ಜಿಲ್ಲಾ/ಭಾಗ/Bhag' },
+  { key: 'nagar', label: 'ತಾಲ್ಲೂಕು/ನಗರ/Nagara' },
+];
+
+function listUpperHierarchyKeys(level) {
+  return hierarchyKeysForScopeLevel(level || sessionLevel).filter((k) =>
+    LIST_UPPER_HIER_COLS.some((c) => c.key === k)
+  );
+}
+
 function refreshListFilterOptions() {
   const vibhagEl = document.getElementById('list-filter-vibhag');
   const bhagEl = document.getElementById('list-filter-bhag');
@@ -1731,27 +1744,32 @@ function refreshListFilterOptions() {
   const upavasatiEl = document.getElementById('list-filter-upavasati');
   const typeEl = document.getElementById('list-filter-type');
   const timingEl = document.getElementById('list-filter-timing');
+  const upperKeys = new Set(listUpperHierarchyKeys(sessionLevel));
   document.querySelectorAll('[data-list-upper-filter]').forEach((el) => {
-    el.classList.toggle('hidden', sessionLevel === 'nagara');
+    const key = el.getAttribute('data-list-upper-filter');
+    el.classList.toggle('hidden', !upperKeys.has(key));
   });
+  if (!upperKeys.has('vibhag')) listFilters.vibhagId = '';
+  if (!upperKeys.has('bhag')) listFilters.bhagId = '';
+  if (!upperKeys.has('nagar')) listFilters.nagarId = '';
 
   const vibhagOptions = uniqueEntityOptions(listShakhes, (s) => s.vibhag);
   fillFilterSelect(vibhagEl, vibhagOptions, listFilters.vibhagId);
-  listFilters.vibhagId = vibhagEl ? vibhagEl.value : '';
+  listFilters.vibhagId = upperKeys.has('vibhag') && vibhagEl ? vibhagEl.value : '';
 
   const bhagSource = listFilters.vibhagId
     ? listShakhes.filter((s) => s.vibhag && String(s.vibhag.id) === listFilters.vibhagId)
     : listShakhes;
   const bhagOptions = uniqueEntityOptions(bhagSource, (s) => s.bhag);
   fillFilterSelect(bhagEl, bhagOptions, listFilters.bhagId);
-  listFilters.bhagId = bhagEl ? bhagEl.value : '';
+  listFilters.bhagId = upperKeys.has('bhag') && bhagEl ? bhagEl.value : '';
 
   const nagarSource = bhagSource.filter(
     (s) => !listFilters.bhagId || (s.bhag && String(s.bhag.id) === listFilters.bhagId)
   );
   const nagarOptions = uniqueEntityOptions(nagarSource, (s) => s.nagar);
   fillFilterSelect(nagarEl, nagarOptions, listFilters.nagarId);
-  listFilters.nagarId = nagarEl ? nagarEl.value : '';
+  listFilters.nagarId = upperKeys.has('nagar') && nagarEl ? nagarEl.value : '';
 
   const vasatiSource = nagarSource.filter(
     (s) => !listFilters.nagarId || (s.nagar && String(s.nagar.id) === listFilters.nagarId)
@@ -1777,10 +1795,29 @@ function refreshListFilterOptions() {
 }
 
 function filteredListShakhes() {
+  const upperKeys = new Set(listUpperHierarchyKeys(sessionLevel));
   return (listShakhes || []).filter((s) => {
-    if (listFilters.vibhagId && !(s.vibhag && String(s.vibhag.id) === listFilters.vibhagId)) return false;
-    if (listFilters.bhagId && !(s.bhag && String(s.bhag.id) === listFilters.bhagId)) return false;
-    if (listFilters.nagarId && !(s.nagar && String(s.nagar.id) === listFilters.nagarId)) return false;
+    if (
+      upperKeys.has('vibhag') &&
+      listFilters.vibhagId &&
+      !(s.vibhag && String(s.vibhag.id) === listFilters.vibhagId)
+    ) {
+      return false;
+    }
+    if (
+      upperKeys.has('bhag') &&
+      listFilters.bhagId &&
+      !(s.bhag && String(s.bhag.id) === listFilters.bhagId)
+    ) {
+      return false;
+    }
+    if (
+      upperKeys.has('nagar') &&
+      listFilters.nagarId &&
+      !(s.nagar && String(s.nagar.id) === listFilters.nagarId)
+    ) {
+      return false;
+    }
     if (listFilters.vasatiId && !(s.vasati && String(s.vasati.id) === listFilters.vasatiId)) return false;
     if (listFilters.upavasatiId && !(s.upavasati && String(s.upavasati.id) === listFilters.upavasatiId)) {
       return false;
@@ -1792,9 +1829,16 @@ function filteredListShakhes() {
 }
 
 function readListFiltersFromDom() {
-  listFilters.vibhagId = document.getElementById('list-filter-vibhag').value || '';
-  listFilters.bhagId = document.getElementById('list-filter-bhag').value || '';
-  listFilters.nagarId = document.getElementById('list-filter-nagar').value || '';
+  const upperKeys = new Set(listUpperHierarchyKeys(sessionLevel));
+  listFilters.vibhagId = upperKeys.has('vibhag')
+    ? document.getElementById('list-filter-vibhag').value || ''
+    : '';
+  listFilters.bhagId = upperKeys.has('bhag')
+    ? document.getElementById('list-filter-bhag').value || ''
+    : '';
+  listFilters.nagarId = upperKeys.has('nagar')
+    ? document.getElementById('list-filter-nagar').value || ''
+    : '';
   listFilters.vasatiId = document.getElementById('list-filter-vasati').value || '';
   listFilters.upavasatiId = document.getElementById('list-filter-upavasati').value || '';
   listFilters.shakheType = document.getElementById('list-filter-type').value || '';
@@ -2004,8 +2048,12 @@ function shakheListHeadHtml(opts) {
   const withCheck = !!(opts && opts.withCheck);
   const withUnhide = !!(opts && opts.withUnhide);
   const withDelete = !!(opts && opts.withDelete);
-  const withHierarchy = !!(opts && opts.withHierarchy);
   const omitPlace = !!(opts && opts.omitPlace);
+  const hierarchyKeys = Array.isArray(opts && opts.hierarchyKeys)
+    ? opts.hierarchyKeys
+    : opts && opts.withHierarchy
+      ? listUpperHierarchyKeys(sessionLevel)
+      : [];
   let cols = omitPlace
     ? [
       'ಶಾಖೆ/Shakhe',
@@ -2023,8 +2071,11 @@ function shakheListHeadHtml(opts) {
       'ಸ್ಥಳ/Sthala',
       'ತಿದ್ದುಪಡಿ/Edit',
     ];
-  if (withHierarchy && !omitPlace) {
-    cols = ['ವಿಭಾಗ/Vibhag', 'ಜಿಲ್ಲಾ/ಭಾಗ/Bhag', 'ತಾಲ್ಲೂಕು/ನಗರ/Nagara', ...cols];
+  if (!omitPlace && hierarchyKeys.length) {
+    const upperLabels = LIST_UPPER_HIER_COLS.filter((c) => hierarchyKeys.includes(c.key)).map(
+      (c) => c.label
+    );
+    cols = [...upperLabels, ...cols];
   }
   const checkTh = withCheck ? '<th class="col-check"></th>' : '';
   const deleteTh = withDelete ? `<th>${stackedLabel('ಅಳಿಸಿ/Delete')}</th>` : '';
@@ -2039,7 +2090,11 @@ function shakheListHeadHtml(opts) {
 function shakheListCells(s, opts) {
   const omitPlace = !!(opts && opts.omitPlace);
   const withDelete = !!(opts && opts.withDelete);
-  const withHierarchy = !!(opts && opts.withHierarchy);
+  const hierarchyKeys = Array.isArray(opts && opts.hierarchyKeys)
+    ? opts.hierarchyKeys
+    : opts && opts.withHierarchy
+      ? listUpperHierarchyKeys(sessionLevel)
+      : [];
   const timing = TIMING_LABEL[s.timing] || s.timing || '—';
   const time = s.time || '';
   const timingHtml = time
@@ -2047,11 +2102,12 @@ function shakheListCells(s, opts) {
     : escapeHtml(timing);
   const nagarAttr = (s.nagar && s.nagar.id) || '';
   const plainName = !!(opts && opts.plainName);
-  const hierarchyCells = withHierarchy
-    ? `<td class="cell-text">${escapeHtml((s.vibhag && s.vibhag.name) || '—')}</td>` +
-      `<td class="cell-text">${escapeHtml((s.bhag && s.bhag.name) || '—')}</td>` +
-      `<td class="cell-text">${escapeHtml((s.nagar && s.nagar.name) || '—')}</td>`
-    : '';
+  const hierarchyCells = hierarchyKeys
+    .map((key) => {
+      const ent = s[key];
+      return `<td class="cell-text">${escapeHtml((ent && ent.name) || '—')}</td>`;
+    })
+    .join('');
   const place =
     omitPlace
       ? ''
@@ -2107,14 +2163,14 @@ function paintShakheList() {
   const filtered = filteredListShakhes();
   const visible = filtered.filter((s) => !isReportHidden(s));
   const hiddenItems = filtered.filter((s) => isReportHidden(s));
-  const withHierarchy = sessionLevel !== 'nagara';
-  const head = shakheListHeadHtml({ withCheck: true, withDelete: true, withHierarchy });
+  const hierarchyKeys = listUpperHierarchyKeys(sessionLevel);
+  const head = shakheListHeadHtml({ withCheck: true, withDelete: true, hierarchyKeys });
   const visibleRows = visible
     .map(
       (s) =>
         `<tr><td class="col-check"><input type="checkbox" data-hide-id="${escapeHtml(s.id)}"></td>${shakheListCells(
           s,
-          { withDelete: true, withHierarchy }
+          { withDelete: true, hierarchyKeys }
         )}</tr>`
     )
     .join('');
@@ -2122,10 +2178,10 @@ function paintShakheList() {
     ? `<table class="varadi-table shakhe-list-table">${head}<tbody>${visibleRows}</tbody></table>`
     : '<p class="username">ತೋರಿಸುವ ಶಾಖೆಗಳಿಲ್ಲ/No visible shakhes</p>';
   const hiddenTable = hiddenItems.length
-    ? `<table class="varadi-table shakhe-list-table">${shakheListHeadHtml({ withUnhide: true, withDelete: true, withHierarchy })}<tbody>${hiddenItems
+    ? `<table class="varadi-table shakhe-list-table">${shakheListHeadHtml({ withUnhide: true, withDelete: true, hierarchyKeys })}<tbody>${hiddenItems
       .map(
         (s) =>
-          `<tr>${shakheListCells(s, { withDelete: true, withHierarchy })}<td><button type="button" class="secondary" data-unhide-id="${escapeHtml(
+          `<tr>${shakheListCells(s, { withDelete: true, hierarchyKeys })}<td><button type="button" class="secondary" data-unhide-id="${escapeHtml(
             s.id
           )}">ತೋರಿಸು/Unhide</button></td></tr>`
       )
