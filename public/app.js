@@ -3922,7 +3922,16 @@ function paintNagaraShakheVaradi(data) {
       return `<td class="num">${cell(totBuckets[i] || 0)}</td>`;
     }).join('')
     : `<td class="num days-ran-placeholder">·</td>`;
-  const colCount = (isVasatiReport ? (yojitaOpen ? 10 : 9) : (yojitaOpen ? (upavasatiOpen ? 14 : 12) : (upavasatiOpen ? 13 : 11))) + (daysOpen ? dayCount + 1 : 1);
+  // Keep colspan in sync with rendered cells (yojita/upavasati slots always occupy a column).
+  const colCount =
+    1 + // name
+    (isVasatiReport ? 0 : upavasatiOpen ? 4 : 2) +
+    1 + // yojita slot
+    1 + // running
+    (daysOpen ? dayCount + 1 : 1) +
+    1 + // nadayada
+    5 + // averages
+    2; // ottu samparka
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
@@ -4152,7 +4161,13 @@ function paintNagaraProgramVaradi(data) {
   const footItems = catalog
     .map((item) => `<td class="num">${programRatioText(totCounts[item.id] || 0, totRunning)}</td>`)
     .join('');
-  const colCount = (isVasatiReport ? (yojitaOpen ? 4 : 3) : (yojitaOpen ? (upavasatiOpen ? 8 : 6) : (upavasatiOpen ? 7 : 5))) + catalog.length;
+  // Keep colspan in sync with rendered cells (yojita/upavasati slots always occupy a column).
+  const colCount =
+    1 + // name
+    (isVasatiReport ? 0 : upavasatiOpen ? 4 : 2) +
+    1 + // yojita slot
+    2 + // running + nadayada
+    catalog.length;
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
