@@ -3498,14 +3498,16 @@ function bindNagaraReportListClicks(table) {
   });
 }
 
-function scopedUpavasatiTitle(filter, level, entityName) {
-  const kindLabel =
-    filter === 'with-shakhe'
-      ? 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe'
-      : filter === 'without-shakhe'
-        ? 'ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe'
-        : 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati';
-  return `${kindLabel} — ${reportPlaceLabel(level === 'nagara' ? 'nagara' : level, entityName || '')}`;
+/** Same shape as Yojita: `{column heading} — {entity name}` (no level prefix). */
+function scopedUpavasatiKindLabel(filter) {
+  if (filter === 'with-shakhe') return 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe';
+  if (filter === 'without-shakhe') return 'ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe';
+  return 'ಒಟ್ಟು ಉಪವಸತಿ/Total Upavasati';
+}
+
+function scopedUpavasatiTitle(filter, entityName) {
+  const name = String(entityName || '').trim();
+  return name ? `${scopedUpavasatiKindLabel(filter)} — ${name}` : scopedUpavasatiKindLabel(filter);
 }
 
 /** Normalize API upavasati rows for Yojita-style hierarchy grouping/drill. */
@@ -3580,12 +3582,7 @@ function paintScopedUpavasatiListBody() {
   const allItems = nagaraListContext.splitUpavasatis || [];
   const hierFilters = nagaraListContext.hierFilters || emptyHierFilters();
   const scoped = applyHierFilters(programSplitScopeFilter(allItems, path), hierFilters);
-  const summaryLabel =
-    filter === 'with-shakhe'
-      ? 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe'
-      : filter === 'without-shakhe'
-        ? 'ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe'
-        : 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati';
+  const summaryLabel = scopedUpavasatiKindLabel(filter);
   const summary =
     `<div class="list-summary program-split-summary">` +
     `<div class="list-summary-item"><span class="list-summary-label">${stackedLabel(
@@ -3636,11 +3633,7 @@ async function openScopedUpavasatiList(opts) {
   const body = document.getElementById('nagara-list-body');
   errorEl.classList.add('hidden');
   body.innerHTML = '';
-  document.getElementById('nagara-list-title').textContent = scopedUpavasatiTitle(
-    filter,
-    vasatiId ? 'nagara' : level,
-    titleName
-  );
+  document.getElementById('nagara-list-title').textContent = scopedUpavasatiTitle(filter, titleName);
   showScreen(nagaraListView);
   setNagaraListLoading(true);
   try {
