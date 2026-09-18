@@ -3594,10 +3594,12 @@ function paintScopedUpavasatiListBody() {
       String(scoped.length)
     )}</strong></div>` +
     `</div>`;
+  // Same as Yojita: only filters for levels still below the current breadcrumb path.
   const filtersHtml = hierLevelFiltersHtml(
-    allItems,
+    programSplitScopeFilter(allItems, path),
     nagaraListContext.entityLevel,
-    hierFilters
+    hierFilters,
+    path
   );
   body.innerHTML =
     summary + filtersHtml + programSplitPathHtml(path) + paintScopedUpavasatiListTable(scoped);
@@ -3611,16 +3613,23 @@ async function openScopedUpavasatiList(opts) {
   if (!level || !entityId) return;
   const filter = (opts && opts.filter) || 'all';
   const entityName = (opts && opts.entityName) || '';
+  const vasatiId = (opts && opts.vasatiId) || '';
+  const vasatiName = (opts && opts.vasatiName) || '';
+  const titleName = vasatiName || entityName;
+  // Same as Yojita: preselect Vasati in filters (keep the dropdown), do not lock breadcrumb path.
+  const initialFilters = emptyHierFilters();
+  if (vasatiId) initialFilters.vasatiId = String(vasatiId);
   shakheReturnTo = 'nagara-varadi-list';
   nagaraListContext = {
     mode: 'scoped-upavasatis',
     entityLevel: level,
     entityId,
     entityName,
+    vasatiId: vasatiId || null,
     filter,
-    titleName: entityName,
+    titleName,
     splitPath: [],
-    hierFilters: emptyHierFilters(),
+    hierFilters: initialFilters,
     splitUpavasatis: [],
   };
   const errorEl = document.getElementById('nagara-list-error');
@@ -3629,8 +3638,8 @@ async function openScopedUpavasatiList(opts) {
   body.innerHTML = '';
   document.getElementById('nagara-list-title').textContent = scopedUpavasatiTitle(
     filter,
-    level,
-    entityName
+    vasatiId ? 'nagara' : level,
+    titleName
   );
   showScreen(nagaraListView);
   setNagaraListLoading(true);
@@ -3644,7 +3653,11 @@ async function openScopedUpavasatiList(opts) {
       errorEl.classList.remove('hidden');
       return;
     }
-    nagaraListContext.splitUpavasatis = normalizeScopedUpavasatiRows(data.upavasatis || []);
+    let rows = normalizeScopedUpavasatiRows(data.upavasatis || []);
+    if (vasatiId) {
+      rows = rows.filter((row) => row.vasati && String(row.vasati.id) === String(vasatiId));
+    }
+    nagaraListContext.splitUpavasatis = rows;
     paintScopedUpavasatiListBody();
   } finally {
     setNagaraListLoading(false);
@@ -4320,9 +4333,13 @@ function uniqueHierFilterOptions(items, key) {
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'en'));
 }
 
-/** Cascading Vibhag→…→Upavasati selects, keyed to the current report/login level. */
-function hierLevelFiltersHtml(items, level, filters) {
-  const keys = hierarchyKeysForScopeLevel(level);
+/**
+ * Cascading hierarchy selects for the current report/login level.
+ * Keys already fixed by the breadcrumb path are omitted (only remaining levels shown).
+ */
+function hierLevelFiltersHtml(items, level, filters, path) {
+  const pathKeys = new Set((path || []).map((step) => step && step.key).filter(Boolean));
+  const keys = hierarchyKeysForScopeLevel(level).filter((key) => !pathKeys.has(key));
   if (!keys.length) return '';
   const f = filters || emptyHierFilters();
   let pool = items || [];
@@ -4906,9 +4923,10 @@ function paintShakheStatusSplitBody() {
   const showHierFilters = filter !== 'yes';
   const filtersHtml = showHierFilters
     ? hierLevelFiltersHtml(
-        filterProgramSplitShakhes(allShakhes, filter),
+        filterProgramSplitShakhes(programSplitScopeFilter(allShakhes, path), filter),
         nagaraListContext.entityLevel,
-        hierFilters
+        hierFilters,
+        path
       )
     : '';
   let summary;
@@ -4986,6 +5004,9 @@ async function openShakheStatusSplit(opts) {
         ? nagaraListContext.itemFilter || 'all'
         : 'all';
   shakheReturnTo = 'nagara-varadi-list';
+  const statusHierFilters = emptyHierFilters();
+  if (opts && opts.vasatiId) statusHierFilters.vasatiId = String(opts.vasatiId);
+  if (opts && opts.upavasatiId) statusHierFilters.upavasatiId = String(opts.upavasatiId);
   nagaraListContext = {
     mode: 'shakhe-status-split',
     entityLevel,
@@ -4996,7 +5017,7 @@ async function openShakheStatusSplit(opts) {
     titleName: entityName,
     itemFilter: keepFilter === 'yojita' ? 'all' : keepFilter,
     splitPath: [],
-    hierFilters: emptyHierFilters(),
+    hierFilters: statusHierFilters,
     splitShakhes: [],
     splitRunningCount: 0,
     splitYojitaCount: 0,
@@ -6055,159 +6076,19 @@ async function openNagaraShakheDrilldown(vasatiId, titleName, filter) {
 }
 
 async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
-  const upavasatiContextLabel = vasatiId ? LABEL_VASATI : LABEL_UPAVASATI;
-  shakheReturnTo = 'nagara-varadi-list';
-  nagaraListContext = {
-    mode: 'upavasatis',
-    vasatiId: vasatiId || null,
-    titleName: titleName || '',
-    filter: filter || 'all',
-    nagarId: scopedNagarId() || null,
-  };
   const errorEl = document.getElementById('nagara-list-error');
-  const body = document.getElementById('nagara-list-body');
-  errorEl.classList.add('hidden');
-  body.innerHTML = '';
-  document.getElementById('nagara-list-title').textContent = `${upavasatiContextLabel} — ${titleName || ''}`;
-  showScreen(nagaraListView);
-  setNagaraListLoading(true);
-  try {
-    if (!requireScopedNagarOrBounce(errorEl)) return;
-    const params = new URLSearchParams({ filter: ['with-shakhe', 'without-shakhe'].includes(filter) ? filter : 'all' });
-    if (vasatiId) params.set('vasatiId', vasatiId);
-    withScopedNagarId(params);
-    const res = await fetch(`/api/nagara/upavasatis?${params.toString()}`);
-    const data = await res.json().catch(() => ({}));
-    if (bounceIfVaradiAuth(res, data)) return;
-    if (!res.ok) {
-      errorEl.textContent = data.error || 'ಗ್ರಾಮ/ಉಪವಸತಿ ಲೋಡ್ ಆಗಲಿಲ್ಲ/Could not load upavasatis';
-      errorEl.classList.remove('hidden');
-      return;
-    }
-    const allItems = data.upavasatis || [];
-    const items = filter === 'with-shakhe'
-      ? allItems.filter((item) => item.hasShakhe)
-      : filter === 'without-shakhe'
-        ? allItems.filter((item) => !item.hasShakhe)
-        : allItems;
-    const withShakhe = items.filter((item) => item.hasShakhe);
-    const withoutShakhe = items.filter((item) => !item.hasShakhe);
-    const summaryHtml =
-      `<div class="list-summary">` +
-      `<div class="list-summary-item"><span class="list-summary-label">ಒಟ್ಟು ${upavasatiContextLabel}/Total</span>` +
-      `<strong class="list-summary-value">${items.length}</strong></div>` +
-      `<div class="list-summary-item"><span class="list-summary-label">ಶಾಖಾಯುಕ್ತ/Shakhayuktha</span>` +
-      `<strong class="list-summary-value">${withShakhe.length}</strong></div>` +
-      `<div class="list-summary-item"><span class="list-summary-label">ಶಾಖಾರಹಿತ/Shakharahita</span>` +
-      `<strong class="list-summary-value">${withoutShakhe.length}</strong></div>` +
-      `</div>`;
-
-    function dropdownSection(titleLabel, count, inner) {
-      return (
-        `<details class="list-dropdown">` +
-        `<summary>` +
-        `<span class="list-dropdown-title">${stackedLabel(titleLabel)}</span>` +
-        `<span class="list-dropdown-count">${count}</span>` +
-        `</summary>` +
-        `<div class="list-dropdown-body">${inner}</div>` +
-        `</details>`
-      );
-    }
-
-    function withoutShakheTable(rows) {
-      if (!rows.length) return `<p class="view-empty">${escapeHtml(upavasatiContextLabel)} ಇಲ್ಲ/No upavasatis</p>`;
-      const head =
-        `<table class="upa-simple-table"><thead><tr>` +
-        `<th>${stackedLabel(LABEL_VASATI)}</th>` +
-        `<th>${stackedLabel(LABEL_UPAVASATI)}</th>` +
-        `</tr></thead><tbody>`;
-      const trs = rows.map((item) => `<tr><td>${escapeHtml((item.vasati && item.vasati.name) || '—')}</td><td>${escapeHtml(item.name)}</td></tr>`).join('');
-      return `${head}${trs}</tbody></table>`;
-    }
-
-    function shakheDetailRowsHtml(list, item) {
-      return (list || [])
-        .map((s) => {
-          const timing = TIMING_LABEL[s.timing] || s.timing || '—';
-          const time = s.time || '';
-          const timingHtml = time
-            ? `${escapeHtml(timing)}<span class="cell-sub">${escapeHtml(time)}</span>`
-            : escapeHtml(timing);
-          return (
-            `<tr>` +
-            `<td class="cell-text">${escapeHtml((item.vasati && item.vasati.name) || '—')}</td>` +
-            `<td class="cell-text">${escapeHtml((item && item.name) || '—')}</td>` +
-            `<td class="cell-name">${escapeHtml(s.name || '—')}</td>` +
-            `<td class="cell-timing">${timingHtml}</td>` +
-            `<td class="cell-text">${escapeHtml(TYPE_LABEL[s.shakheType] || s.shakheType || '—')}</td>` +
-            `<td class="cell-person">${escapeHtml(
-              personCell(s.mukhashikshakName, s.mukhashikshakPhone)
-            )}</td>` +
-            `</tr>`
-          );
-        })
-        .join('');
-    }
-
-    function withShakheGroupedHtml(rows) {
-      const items = (rows || []).filter((item) => (item.shakhes || []).length);
-      if (!items.length) return '<p class="view-empty">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</p>';
-      const head =
-        `<table class="varadi-table shakhe-list-table upa-shakhe-detail"><thead><tr>` +
-        `<th>${stackedLabel(LABEL_VASATI)}</th>` +
-        `<th>${stackedLabel(LABEL_UPAVASATI)}</th>` +
-        `<th>${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
-        `<th>${stackedLabel('ಸಮಯ/Timing')}</th>` +
-        `<th>${stackedLabel('ಪ್ರಕಾರ/Type')}</th>` +
-        `<th>${stackedLabel('ಮುಖ್ಯ ಶಿಕ್ಷಕ್/Mukhya Shikshak')}</th>` +
-        `</tr></thead><tbody>`;
-      return items
-        .map((item) => {
-          const list = item.shakhes || [];
-          const table = `${head}${shakheDetailRowsHtml(list, item)}</tbody></table>`;
-          return (
-            `<details class="list-dropdown upa-shakhe-group" open>` +
-            `<summary>` +
-            `<span class="list-dropdown-title">` +
-            `<strong>${escapeHtml(item.name)}</strong>` +
-            `<span class="username"> · ${escapeHtml(String(list.length))} ಶಾಖೆ/Shakhe</span>` +
-            `</span>` +
-            `<span class="list-dropdown-count">${list.length}</span>` +
-            `</summary>` +
-            `<div class="list-dropdown-body">${table}</div>` +
-            `</details>`
-          );
-        })
-        .join('');
-    }
-
-    body.innerHTML =
-      summaryHtml +
-      dropdownSection(
-        `ಶಾಖಾಯುಕ್ತ ${upavasatiContextLabel}/Vasati with Shakhe`,
-        withShakhe.length,
-        withShakheGroupedHtml(withShakhe)
-      ) +
-      dropdownSection(
-        `ಶಾಖಾರಹಿತ ${upavasatiContextLabel}/Vasati without Shakhe`,
-        withoutShakhe.length,
-        withoutShakheTable(withoutShakhe)
-      );
-
-    body.querySelectorAll('details.list-dropdown').forEach((el) => {
-      el.addEventListener('toggle', () => {
-        if (!el.open) return;
-        try {
-          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        } catch (_) {
-          el.scrollIntoView(false);
-        }
-      });
-    });
-  } finally {
-    setNagaraListLoading(false);
-  }
+  if (!requireScopedNagarOrBounce(errorEl)) return;
+  const nagarId = scopedNagarId();
+  return openScopedUpavasatiList({
+    level: 'nagara',
+    entityId: nagarId,
+    entityName: nagaraName || reportScopeEntityName || titleName || '',
+    vasatiId: vasatiId || '',
+    vasatiName: vasatiId ? titleName || '' : '',
+    filter: filter || 'all',
+  });
 }
+
 
 function setVaradiDayCount(selected) {
   const selectedEl = document.getElementById('varadi-day-count');
