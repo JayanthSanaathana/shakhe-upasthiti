@@ -457,6 +457,25 @@ app.get('/api/nagara/shakhes', varadiAuth.requireSession, limitRead, asyncRoute(
   res.json(result);
 }));
 
+app.get('/api/varadi/upavasatis', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
+  const session = req.varadiSession;
+  const level = scalar(req.query.level);
+  const entityId = scalar(req.query.entityId) || (session.level === level ? session.entityId : '');
+  if (!['prant', 'vibhag', 'bhag', 'nagara'].includes(level) || !isObjectId(entityId)) {
+    return res.status(400).json({ error: 'Invalid entity' });
+  }
+  if (!(await varadiAuth.canAccessEntity(session, entityId))) {
+    return res.status(403).json({ error: 'Not allowed for this entity' });
+  }
+  const result = await shakheVaradiReport.listUpavasatisForScope({
+    level,
+    entityId,
+    filter: scalar(req.query.filter) || 'all',
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json(result);
+}));
+
 app.get('/api/nagara/program-item-hits', varadiAuth.requireSession, limitRead, asyncRoute(async (req, res) => {
   const nagarId = await resolveScopedNagarId(req, res);
   if (!nagarId) return;
