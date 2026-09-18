@@ -358,6 +358,7 @@ let nagaraReportLoadSeq = 0;
 let nagaraReportKind = 'shakhe';
 /** Excel-style expand/collapse for days-ran bucket columns on Shakhe Varadi. */
 let shakheDaysColumnsOpen = false;
+let yojitaShakheColumnOpen = false;
 /** Where view/edit should return: 'patti' | 'nagara-varadi-list' | 'nagara-varadi' */
 let shakheReturnTo = 'patti';
 let navSeq = 0;
@@ -614,6 +615,7 @@ function logoutLocal() {
   nagaraListContext = null;
   nagaraReportKind = 'shakhe';
   shakheDaysColumnsOpen = false;
+  yojitaShakheColumnOpen = false;
   shakheReturnTo = 'patti';
   setNagaraAuthed(false);
   syncHomeActionsForLevel(null);
@@ -3426,7 +3428,7 @@ async function openScopedUpavasatiList(opts) {
   errorEl.classList.add('hidden');
   body.innerHTML = '';
   document.getElementById('nagara-list-title').textContent =
-    `${filter === 'with-shakhe' ? 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe' : 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati'} — ${(opts && opts.entityName) || ''}`;
+    `${filter === 'with-shakhe' ? 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe' : filter === 'without-shakhe' ? 'ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe' : 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati'} — ${reportPlaceLabel(level === 'nagara' ? 'nagara' : level, (opts && opts.entityName) || '')}`;
   showScreen(nagaraListView);
   setNagaraListLoading(true);
   try {
@@ -3541,6 +3543,7 @@ function paintNagaraShakheVaradi(data) {
   const emptyMsg = isLeaf ? 'ವಸತಿ/ಮಂಡಲಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
   const dayCount = Math.max(0, Number((data && data.dayCount) || nagaraVaradiRangeDays().count || 0));
   const daysOpen = Boolean(shakheDaysColumnsOpen);
+  const yojitaOpen = Boolean(yojitaShakheColumnOpen);
   const daysColspan = daysOpen ? dayCount + 1 : 1;
   const toggleLabel = daysOpen ? '−' : '+';
   const daysGroupHead = daysOpen
@@ -3565,8 +3568,11 @@ function paintNagaraShakheVaradi(data) {
     `<th rowspan="2">${stackedLabel(isVasatiReport ? LABEL_UPAVASATI : reportFirstColLabel(level))}</th>` +
     (isVasatiReport ? '' :
       `<th class="num" rowspan="2">${stackedLabel('ಒಟ್ಟು ಉಪವಸತಿ/Total Upavasati')}</th>` +
-      `<th class="num" rowspan="2">${stackedLabel('ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe')}</th>`) +
-    `<th class="num" rowspan="2">${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` +
+      `<th class="num" rowspan="2">${stackedLabel('ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe')}</th>` +
+      `<th class="num" rowspan="2">${stackedLabel('ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe')}</th>`) +
+    (isVasatiReport ? '' : `<th class="num" rowspan="2">` +
+      `<button type="button" class="days-ran-toggle" data-yojita-toggle="1" aria-expanded="${yojitaOpen ? 'true' : 'false'}" title="${yojitaOpen ? 'Hide' : 'Show'}">${yojitaOpen ? '−' : '+'}</button> ` +
+      `${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>`) +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu')}</th>` +
     daysGroupHead +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯದ ಶಾಖೆ/Nadayada Shakhe')}</th>` +
@@ -3646,6 +3652,11 @@ function paintNagaraShakheVaradi(data) {
         : nextLevel && cid
           ? upavasatiScopeCountLink(row.upavasatiWithShakheCount, nextLevel, cid, title, 'with-shakhe')
           : cell(row.upavasatiWithShakheCount);
+      const withoutShakhe = isLeaf && cid && row.upavasatiWithoutShakheCount > 0
+        ? `<button type="button" class="num-link"${upavasatiListAttrs} data-list-filter="without-shakhe">${row.upavasatiWithoutShakheCount}</button>`
+        : nextLevel && cid
+          ? upavasatiScopeCountLink(row.upavasatiWithoutShakheCount, nextLevel, cid, title, 'without-shakhe')
+          : cell(row.upavasatiWithoutShakheCount);
       const running = isLeaf
         ? leafStatusOpts && leafStatusOpts.entityId
           ? shakheStatusCountLink(
@@ -3701,7 +3712,8 @@ function paintNagaraShakheVaradi(data) {
         `<tr>` +
         `<td>${nameCell}</td>` +
         (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td><td class="num">${withShakhe}</td>`) +
-        `<td class="num">${yojita}</td>` +
+        (isVasatiReport ? '' : `<td class="num">${withoutShakhe}</td>`) +
+        (isVasatiReport || yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
         `<td class="num">${running}</td>` +
         (daysOpen ? daysCells : `<td class="num days-ran-placeholder">·</td>`) +
         `<td class="num">${notRunning}</td>` +
@@ -3726,12 +3738,13 @@ function paintNagaraShakheVaradi(data) {
       return `<td class="num">${cell(totBuckets[i] || 0)}</td>`;
     }).join('')
     : `<td class="num days-ran-placeholder">·</td>`;
-  const colCount = (isVasatiReport ? 10 : 12) + (daysOpen ? dayCount + 1 : 1);
+  const colCount = (isVasatiReport ? 10 : (yojitaOpen ? 13 : 12)) + (daysOpen ? dayCount + 1 : 1);
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
     (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td><td class="num">${cell(tot.upavasatiWithShakheCount)}</td>`) +
-    `<td class="num">${cell(tot.yojitaShakheCount)}</td>` +
+    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>`) +
+    (isVasatiReport || yojitaOpen ? `<td class="num">${cell(tot.yojitaShakheCount)}</td>` : '') +
     `<td class="num">${cell(tot.nadayuthiruvaShakheCount)}</td>` +
     totDaysCells +
     `<td class="num">${cell(tot.nadayadaShakheCount)}</td>` +
@@ -3754,6 +3767,14 @@ function paintNagaraShakheVaradi(data) {
       e.preventDefault();
       e.stopPropagation();
       shakheDaysColumnsOpen = !shakheDaysColumnsOpen;
+      paintNagaraShakheVaradi(nagaraReportCache || data);
+    });
+  });
+  table.querySelectorAll('[data-yojita-toggle]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      yojitaShakheColumnOpen = !yojitaShakheColumnOpen;
       paintNagaraShakheVaradi(nagaraReportCache || data);
     });
   });
@@ -3811,8 +3832,11 @@ function paintNagaraProgramVaradi(data) {
     `<th>${stackedLabel(isVasatiReport ? LABEL_UPAVASATI : reportFirstColLabel(level))}</th>` +
     (isVasatiReport ? '' :
       `<th class="num">${stackedLabel('ಒಟ್ಟು ಉಪವಸತಿ/Total Upavasati')}</th>` +
-      `<th class="num">${stackedLabel('ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe')}</th>`) +
-    `<th class="num">${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` +
+      `<th class="num">${stackedLabel('ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe')}</th>` +
+      `<th class="num">${stackedLabel('ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe')}</th>`) +
+    (isVasatiReport ? `<th class="num">${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` :
+      yojitaOpen ? `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">−</button> ${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` :
+        `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">+</button></th>`) +
     `<th class="num">${stackedLabel('ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu')}</th>` +
     `<th class="num">${stackedLabel('ನಡೆಯದ ಶಾಖೆಗಳು/Nadayada Shakhegalu')}</th>` +
     itemHeads +
@@ -3840,6 +3864,11 @@ function paintNagaraProgramVaradi(data) {
         : nextLevel && cid
           ? upavasatiScopeCountLink(row.upavasatiWithShakheCount, nextLevel, cid, title, 'with-shakhe')
           : cell(row.upavasatiWithShakheCount);
+      const withoutShakhe = isLeaf && cid && row.upavasatiWithoutShakheCount > 0
+        ? `<button type="button" class="num-link"${upavasatiListAttrs} data-list-filter="without-shakhe">${row.upavasatiWithoutShakheCount}</button>`
+        : nextLevel && cid
+          ? upavasatiScopeCountLink(row.upavasatiWithoutShakheCount, nextLevel, cid, title, 'without-shakhe')
+          : cell(row.upavasatiWithoutShakheCount);
       const nadayada =
         row.nadayadaShakheCount != null
           ? row.nadayadaShakheCount
@@ -3909,8 +3938,8 @@ function paintNagaraProgramVaradi(data) {
       return (
         `<tr>` +
         `<td>${nameCell}</td>` +
-        (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td><td class="num">${withShakhe}</td>`) +
-        `<td class="num">${yojita}</td>` +
+        (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td><td class="num">${withShakhe}</td><td class="num">${withoutShakhe}</td>`) +
+        (isVasatiReport || yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
         `<td class="num">${shakheRunningRatioLink(running, yojita, runningOpts)}</td>` +
         `<td class="num">${shakheRunningRatioLink(nadayada, yojita, nadayadaOpts)}</td>` +
         itemCells +
@@ -3930,12 +3959,12 @@ function paintNagaraProgramVaradi(data) {
   const footItems = catalog
     .map((item) => `<td class="num">${programRatioText(totCounts[item.id] || 0, totRunning)}</td>`)
     .join('');
-  const colCount = (isVasatiReport ? 4 : 6) + catalog.length;
+  const colCount = (isVasatiReport ? 4 : (yojitaOpen ? 7 : 6)) + catalog.length;
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
-    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td><td class="num">${cell(tot.upavasatiWithShakheCount)}</td>`) +
-    `<td class="num">${cell(totYojita)}</td>` +
+    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td><td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>`) +
+    (isVasatiReport || yojitaOpen ? `<td class="num">${cell(totYojita)}</td>` : '') +
     `<td class="num">${programRatioText(totRunning, totYojita)}</td>` +
     `<td class="num">${programRatioText(totNadayada, totYojita)}</td>` +
     footItems +
@@ -3958,6 +3987,14 @@ function paintNagaraProgramVaradi(data) {
         titleName: btn.getAttribute('data-list-title') || '',
         itemDayCount: btn.getAttribute('data-item-day-count') || '',
       });
+    });
+  });
+  table.querySelectorAll('[data-yojita-toggle]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      yojitaShakheColumnOpen = !yojitaShakheColumnOpen;
+      paintNagaraProgramVaradi(nagaraReportCache || data);
     });
   });
 }
@@ -5719,7 +5756,7 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
   setNagaraListLoading(true);
   try {
     if (!requireScopedNagarOrBounce(errorEl)) return;
-    const params = new URLSearchParams({ filter: filter === 'with-shakhe' ? 'with-shakhe' : 'all' });
+    const params = new URLSearchParams({ filter: ['with-shakhe', 'without-shakhe'].includes(filter) ? filter : 'all' });
     if (vasatiId) params.set('vasatiId', vasatiId);
     withScopedNagarId(params);
     const res = await fetch(`/api/nagara/upavasatis?${params.toString()}`);
@@ -5731,7 +5768,11 @@ async function openNagaraUpavasatiList(vasatiId, titleName, filter) {
       return;
     }
     const allItems = data.upavasatis || [];
-    const items = filter === 'with-shakhe' ? allItems.filter((item) => item.hasShakhe) : allItems;
+    const items = filter === 'with-shakhe'
+      ? allItems.filter((item) => item.hasShakhe)
+      : filter === 'without-shakhe'
+        ? allItems.filter((item) => !item.hasShakhe)
+        : allItems;
     const withShakhe = items.filter((item) => item.hasShakhe);
     const withoutShakhe = items.filter((item) => !item.hasShakhe);
     const summaryHtml =
