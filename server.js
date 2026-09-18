@@ -399,7 +399,8 @@ app.get('/api/nagara/shakhe-varadi', varadiAuth.requireSession, limitRead, async
     nagarId,
     scalar(req.query.from),
     scalar(req.query.to),
-    excludeSunday
+    excludeSunday,
+    scalar(req.query.vasatiId) || undefined
   );
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   res.json(result);
@@ -417,7 +418,8 @@ app.get('/api/nagara/program-varadi', varadiAuth.requireSession, limitRead, asyn
     scalar(req.query.from),
     scalar(req.query.to),
     excludeSunday,
-    scalar(req.query.itemDayCount)
+    scalar(req.query.itemDayCount),
+    scalar(req.query.vasatiId) || undefined
   );
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   res.json(result);
@@ -429,6 +431,7 @@ app.get('/api/nagara/upavasatis', varadiAuth.requireSession, limitRead, asyncRou
   const result = await shakheVaradiReport.listUpavasatisForNagara({
     nagarId,
     vasatiId: scalar(req.query.vasatiId) || undefined,
+    upavasatiId: scalar(req.query.upavasatiId) || undefined,
     filter: scalar(req.query.filter) || 'all',
   });
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
@@ -492,6 +495,7 @@ app.get('/api/varadi/program-item-shakhes', varadiAuth.requireSession, limitRead
     level,
     entityId,
     vasatiId: scalar(req.query.vasatiId) || undefined,
+    upavasatiId: scalar(req.query.upavasatiId) || undefined,
     programKind: scalar(req.query.kind),
     itemId: scalar(req.query.itemId),
     fromDate: scalar(req.query.from) || undefined,
@@ -522,6 +526,7 @@ app.get('/api/varadi/shakhe-status-shakhes', varadiAuth.requireSession, limitRea
     level,
     entityId,
     vasatiId: scalar(req.query.vasatiId) || undefined,
+    upavasatiId: scalar(req.query.upavasatiId) || undefined,
     fromDate: scalar(req.query.from) || undefined,
     toDate: scalar(req.query.to) || undefined,
     excludeSunday,
