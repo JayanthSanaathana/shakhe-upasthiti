@@ -1894,6 +1894,14 @@ function returnToNagaraListContext() {
   if (ctx.mode === 'upavasatis') {
     return openNagaraUpavasatiList(ctx.vasatiId, ctx.titleName, ctx.filter || 'all');
   }
+  if (ctx.mode === 'scoped-upavasatis' && ctx.entityId && ctx.entityLevel) {
+    return openScopedUpavasatiList({
+      level: ctx.entityLevel,
+      entityId: ctx.entityId,
+      entityName: ctx.entityName || ctx.titleName || '',
+      filter: ctx.filter || 'all',
+    });
+  }
   return openNagaraShakheVaradi({ useCache: true, kind: nagaraReportKind });
 }
 
@@ -2396,10 +2404,24 @@ document.getElementById('nagara-list-back').addEventListener('click', () => {
   }
   if (nagaraListContext && nagaraListContext.mode === 'shakhe-status-split') {
     const path = Array.isArray(nagaraListContext.splitPath) ? nagaraListContext.splitPath : [];
-    if (path.length) {
-      // Leave hierarchy drill (All › …) first; stay on Yojita/Nadayuthiruva list.
+    const hasHierFilter = Object.values(nagaraListContext.hierFilters || {}).some(Boolean);
+    if (path.length || hasHierFilter) {
+      // Leave hierarchy drill/filters first; stay on Yojita/Nadayuthiruva list.
       nagaraListContext.splitPath = [];
+      nagaraListContext.hierFilters = emptyHierFilters();
       paintShakheStatusSplitBody();
+      return;
+    }
+    shakheReturnTo = 'nagara-varadi';
+    return openNagaraShakheVaradi({ useCache: true, kind: nagaraReportKind });
+  }
+  if (nagaraListContext && nagaraListContext.mode === 'scoped-upavasatis') {
+    const path = Array.isArray(nagaraListContext.splitPath) ? nagaraListContext.splitPath : [];
+    const hasHierFilter = Object.values(nagaraListContext.hierFilters || {}).some(Boolean);
+    if (path.length || hasHierFilter) {
+      nagaraListContext.splitPath = [];
+      nagaraListContext.hierFilters = emptyHierFilters();
+      paintScopedUpavasatiListBody();
       return;
     }
     shakheReturnTo = 'nagara-varadi';
@@ -3476,17 +3498,140 @@ function bindNagaraReportListClicks(table) {
   });
 }
 
+function scopedUpavasatiTitle(filter, level, entityName) {
+  const kindLabel =
+    filter === 'with-shakhe'
+      ? 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe'
+      : filter === 'without-shakhe'
+        ? 'ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe'
+        : 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati';
+  return `${kindLabel} — ${reportPlaceLabel(level === 'nagara' ? 'nagara' : level, entityName || '')}`;
+}
+
+/** Normalize API upavasati rows for Yojita-style hierarchy grouping/drill. */
+function normalizeScopedUpavasatiRows(items) {
+  return (items || []).map((item) => ({
+    id: item.id,
+    name: item.name || '—',
+    vibhag: item.vibhag || null,
+    bhag: item.bhag || null,
+    nagar: item.nagar || null,
+    vasati: item.vasati || null,
+    upavasati: { id: item.id, name: item.name || '—' },
+    shakheCount: Number(item.shakheCount) || 0,
+    shakhes: item.shakhes || [],
+    hasShakhe: Boolean(item.hasShakhe),
+  }));
+}
+
+function paintScopedUpavasatiListTable(items) {
+  const sorted = sortProgramSplitShakhes(items);
+  const visibleFields = shakheHierarchyVisibleFields(
+    sorted,
+    hierarchyKeysForScopeLevel(nagaraListContext && nagaraListContext.entityLevel)
+  );
+  const fieldKeys = visibleFields.map((f) => f.key);
+  const display = sorted.map((item) => {
+    const row = {
+      _item: item,
+      name: item.name || '—',
+      shakheCount: item.shakheCount || 0,
+    };
+    fieldKeys.forEach((key) => {
+      row[key] = programSplitEntityName(item[key]);
+      row[`${key}Id`] = (item[key] && item[key].id) || '';
+    });
+    return row;
+  });
+  const spans = programSplitRowspans(display, fieldKeys);
+  const hierHeads = visibleFields.map((f) => `<th>${stackedLabel(f.label)}</th>`).join('');
+  // Upavasati is already in hierarchy fields when in scope; only add Shakhe count leaf.
+  const hasUpavasatiCol = fieldKeys.includes('upavasati');
+  const leafHeads = hasUpavasatiCol
+    ? `<th class="num">${stackedLabel('ಶಾಖೆ/Shakhe')}</th>`
+    : `<th>${stackedLabel(LABEL_UPAVASATI)}</th><th class="num">${stackedLabel('ಶಾಖೆ/Shakhe')}</th>`;
+  const leafCount = hasUpavasatiCol ? 1 : 2;
+  const rows = display
+    .map((row, idx) => {
+      const hier = shakheGroupedHierCells(display, spans, fieldKeys, idx);
+      const leaf = hasUpavasatiCol
+        ? `<td class="num">${escapeHtml(String(row.shakheCount))}</td>`
+        : `<td class="cell-text">${escapeHtml(row.name)}</td>` +
+          `<td class="num">${escapeHtml(String(row.shakheCount))}</td>`;
+      return `<tr>${hier}${leaf}</tr>`;
+    })
+    .join('');
+  return (
+    `<div class="table-wrap"><table class="varadi-table shakhe-list-table shakhe-yojita-table"><thead><tr>` +
+    hierHeads +
+    leafHeads +
+    `</tr></thead><tbody>${
+      rows ||
+      `<tr><td colspan="${visibleFields.length + leafCount}">ಉಪವಸತಿಗಳಿಲ್ಲ/No Upavasatis</td></tr>`
+    }</tbody></table></div>`
+  );
+}
+
+function paintScopedUpavasatiListBody() {
+  const body = document.getElementById('nagara-list-body');
+  if (!body || !nagaraListContext || nagaraListContext.mode !== 'scoped-upavasatis') return;
+  const filter = nagaraListContext.filter || 'all';
+  const path = Array.isArray(nagaraListContext.splitPath) ? nagaraListContext.splitPath : [];
+  const allItems = nagaraListContext.splitUpavasatis || [];
+  const hierFilters = nagaraListContext.hierFilters || emptyHierFilters();
+  const scoped = applyHierFilters(programSplitScopeFilter(allItems, path), hierFilters);
+  const summaryLabel =
+    filter === 'with-shakhe'
+      ? 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe'
+      : filter === 'without-shakhe'
+        ? 'ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe'
+        : 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati';
+  const summary =
+    `<div class="list-summary program-split-summary">` +
+    `<div class="list-summary-item"><span class="list-summary-label">${stackedLabel(
+      summaryLabel
+    )}</span><strong class="list-summary-value">${escapeHtml(
+      String(scoped.length)
+    )}</strong></div>` +
+    `</div>`;
+  const filtersHtml = hierLevelFiltersHtml(
+    allItems,
+    nagaraListContext.entityLevel,
+    hierFilters
+  );
+  body.innerHTML =
+    summary + filtersHtml + programSplitPathHtml(path) + paintScopedUpavasatiListTable(scoped);
+  bindHierLevelFilters(body, paintScopedUpavasatiListBody);
+  bindShakheSplitPathClicks(body, paintScopedUpavasatiListBody);
+}
+
 async function openScopedUpavasatiList(opts) {
   const level = opts && opts.level;
   const entityId = opts && opts.entityId;
   if (!level || !entityId) return;
   const filter = (opts && opts.filter) || 'all';
+  const entityName = (opts && opts.entityName) || '';
+  shakheReturnTo = 'nagara-varadi-list';
+  nagaraListContext = {
+    mode: 'scoped-upavasatis',
+    entityLevel: level,
+    entityId,
+    entityName,
+    filter,
+    titleName: entityName,
+    splitPath: [],
+    hierFilters: emptyHierFilters(),
+    splitUpavasatis: [],
+  };
   const errorEl = document.getElementById('nagara-list-error');
   const body = document.getElementById('nagara-list-body');
   errorEl.classList.add('hidden');
   body.innerHTML = '';
-  document.getElementById('nagara-list-title').textContent =
-    `${filter === 'with-shakhe' ? 'ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe' : filter === 'without-shakhe' ? 'ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe' : 'ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati'} — ${reportPlaceLabel(level === 'nagara' ? 'nagara' : level, (opts && opts.entityName) || '')}`;
+  document.getElementById('nagara-list-title').textContent = scopedUpavasatiTitle(
+    filter,
+    level,
+    entityName
+  );
   showScreen(nagaraListView);
   setNagaraListLoading(true);
   try {
@@ -3499,28 +3644,8 @@ async function openScopedUpavasatiList(opts) {
       errorEl.classList.remove('hidden');
       return;
     }
-    const rows = data.upavasatis || [];
-    const rowHtml = rows.map((item) =>
-      `<tr>` +
-      `<td>${escapeHtml((item.vibhag && item.vibhag.name) || '—')}</td>` +
-      `<td>${escapeHtml((item.bhag && item.bhag.name) || '—')}</td>` +
-      `<td>${escapeHtml((item.nagar && item.nagar.name) || '—')}</td>` +
-      `<td>${escapeHtml((item.vasati && item.vasati.name) || '—')}</td>` +
-      `<td>${escapeHtml(item.name || '—')}</td>` +
-      `<td class="num">${escapeHtml(String(item.shakheCount || 0))}</td>` +
-      `</tr>`
-    ).join('');
-    body.innerHTML =
-      `<div class="list-summary"><div class="list-summary-item">` +
-      `<span class="list-summary-label">ಗ್ರಾಮ/ಉಪವಸತಿ/Upavasati</span>` +
-      `<strong class="list-summary-value">${rows.length}</strong></div></div>` +
-      `<div class="table-wrap"><table class="varadi-table shakhe-list-table">` +
-      `<thead><tr>` +
-      `<th>${stackedLabel(LABEL_VIBHAG)}</th><th>${stackedLabel(LABEL_BHAG)}</th>` +
-      `<th>${stackedLabel(LABEL_NAGARA)}</th><th>${stackedLabel(LABEL_VASATI)}</th>` +
-      `<th>${stackedLabel(LABEL_UPAVASATI)}</th><th>${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
-      `</tr></thead><tbody>${rowHtml || `<tr><td colspan="6">ಉಪವಸತಿಗಳಿಲ್ಲ/No Upavasatis</td></tr>`}</tbody>` +
-      `</table></div>`;
+    nagaraListContext.splitUpavasatis = normalizeScopedUpavasatiRows(data.upavasatis || []);
+    paintScopedUpavasatiListBody();
   } finally {
     setNagaraListLoading(false);
   }
@@ -3771,7 +3896,7 @@ function paintNagaraShakheVaradi(data) {
       return (
         `<tr>` +
         `<td>${nameCell}</td>` +
-        (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td>` + (upavasatiOpen ? `<td class="num">${withShakhe}</td><td class="num days-ran-placeholder">·</td><td class="num">${withoutShakhe}</td>` : '<td class="num">')) +
+        (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td>` + (upavasatiOpen ? `<td class="num">${withShakhe}</td><td class="num days-ran-placeholder">·</td><td class="num">${withoutShakhe}</td>` : '<td class="num"></td>')) +
         (yojitaOpen ? `<td class="num">${yojita}</td>` : '<td class="num"></td>') +
         `<td class="num">${running}</td>` +
         (daysOpen ? daysCells : `<td class="num days-ran-placeholder">·</td>`) +
@@ -3801,7 +3926,7 @@ function paintNagaraShakheVaradi(data) {
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
-    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td>` + (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num">')) +
+    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td>` + (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num"></td>')) +
     (yojitaOpen ? `<td class="num">${cell(tot.yojitaShakheCount)}</td>` : '<td class="num"></td>') +
     `<td class="num">${cell(tot.nadayuthiruvaShakheCount)}</td>` +
     totDaysCells +
@@ -3888,6 +4013,7 @@ function paintNagaraProgramVaradi(data) {
   const isVasatiReport = data && data.scope === 'vasati';
   const isLeaf = level === 'nagara' || isVasatiReport;
   const upavasatiOpen = Boolean(upavasatiColumnsOpen);
+  const yojitaOpen = Boolean(yojitaShakheColumnOpen);
   const itemDayCount = data.itemDayCount || '';
   const nextLevel = NEXT_VARADI_LEVEL[level] || null;
   const emptyMsg = isLeaf ? 'ವಸತಿ/ಮಂಡಲಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
@@ -4005,7 +4131,7 @@ function paintNagaraProgramVaradi(data) {
       return (
         `<tr>` +
         `<td>${nameCell}</td>` +
-        (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td>` + (upavasatiOpen ? `<td class="num">${withShakhe}</td><td class="num days-ran-placeholder">·</td><td class="num">${withoutShakhe}</td>` : '<td class="num">')) +
+        (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td>` + (upavasatiOpen ? `<td class="num">${withShakhe}</td><td class="num days-ran-placeholder">·</td><td class="num">${withoutShakhe}</td>` : '<td class="num"></td>')) +
         (yojitaOpen ? `<td class="num">${yojita}</td>` : '<td class="num"></td>') +
         `<td class="num">${shakheRunningRatioLink(running, yojita, runningOpts)}</td>` +
         `<td class="num">${shakheRunningRatioLink(nadayada, yojita, nadayadaOpts)}</td>` +
@@ -4030,7 +4156,7 @@ function paintNagaraProgramVaradi(data) {
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
-    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td>` + (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num">')) +
+    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td>` + (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num"></td>')) +
     (yojitaOpen ? `<td class="num">${cell(totYojita)}</td>` : '<td class="num"></td>') +
     `<td class="num">${programRatioText(totRunning, totYojita)}</td>` +
     `<td class="num">${programRatioText(totNadayada, totYojita)}</td>` +
@@ -4142,6 +4268,94 @@ function hierarchyKeysForScopeLevel(level) {
   if (lv === 'vibhag') return ['bhag', 'nagar', 'vasati', 'upavasati'];
   if (lv === 'bhag') return ['nagar', 'vasati', 'upavasati'];
   return ['vasati', 'upavasati'];
+}
+
+function emptyHierFilters() {
+  return { vibhagId: '', bhagId: '', nagarId: '', vasatiId: '', upavasatiId: '' };
+}
+
+function hierFiltersFromPath(path) {
+  const filters = emptyHierFilters();
+  (path || []).forEach((step) => {
+    if (!step || !step.key || !step.id) return;
+    filters[`${step.key}Id`] = String(step.id);
+  });
+  return filters;
+}
+
+function applyHierFilters(items, filters) {
+  const f = filters || emptyHierFilters();
+  return (items || []).filter((item) => {
+    for (const field of PROGRAM_SPLIT_HIER_FIELDS) {
+      const selected = f[`${field.key}Id`];
+      if (!selected) continue;
+      if (!(item[field.key] && String(item[field.key].id) === String(selected))) return false;
+    }
+    return true;
+  });
+}
+
+function uniqueHierFilterOptions(items, key) {
+  const map = new Map();
+  (items || []).forEach((item) => {
+    const ent = item && item[key];
+    if (!ent || !ent.id) return;
+    map.set(String(ent.id), { id: String(ent.id), name: ent.name || String(ent.id) });
+  });
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'en'));
+}
+
+/** Cascading Vibhag→…→Upavasati selects, keyed to the current report/login level. */
+function hierLevelFiltersHtml(items, level, filters) {
+  const keys = hierarchyKeysForScopeLevel(level);
+  if (!keys.length) return '';
+  const f = filters || emptyHierFilters();
+  let pool = items || [];
+  const fields = keys
+    .map((key) => {
+      const meta = PROGRAM_SPLIT_HIER_FIELDS.find((field) => field.key === key);
+      const opts = uniqueHierFilterOptions(pool, key);
+      const selected = f[`${key}Id`] || '';
+      const html =
+        `<div class="field">` +
+        `<label for="hier-filter-${escapeHtml(key)}">${stackedLabel((meta && meta.label) || key)}</label>` +
+        `<select id="hier-filter-${escapeHtml(key)}" data-hier-filter="${escapeHtml(key)}">` +
+        `<option value="">ಎಲ್ಲಾ/All</option>` +
+        opts
+          .map((opt) => {
+            const sel = String(opt.id) === String(selected) ? ' selected' : '';
+            return `<option value="${escapeHtml(opt.id)}"${sel}>${escapeHtml(opt.name)}</option>`;
+          })
+          .join('') +
+        `</select></div>`;
+      if (selected) {
+        pool = pool.filter((item) => item[key] && String(item[key].id) === String(selected));
+      }
+      return html;
+    })
+    .join('');
+  return `<div class="list-filters program-split-filters hier-level-filters">${fields}</div>`;
+}
+
+function bindHierLevelFilters(root, repaint) {
+  if (!root) return;
+  root.querySelectorAll('select[data-hier-filter]').forEach((sel) => {
+    sel.addEventListener('change', () => {
+      if (!nagaraListContext) return;
+      const key = sel.getAttribute('data-hier-filter');
+      if (!key) return;
+      const filters = Object.assign(emptyHierFilters(), nagaraListContext.hierFilters || {});
+      const keys = PROGRAM_SPLIT_HIER_FIELDS.map((field) => field.key);
+      const idx = keys.indexOf(key);
+      filters[`${key}Id`] = sel.value || '';
+      for (let i = idx + 1; i < keys.length; i += 1) {
+        filters[`${keys[i]}Id`] = '';
+      }
+      nagaraListContext.hierFilters = filters;
+      nagaraListContext.splitPath = [];
+      repaint();
+    });
+  });
 }
 
 function programSplitBaseFieldIndex(level) {
@@ -4565,6 +4779,7 @@ function bindShakheSplitPathClicks(body, repaint) {
       });
       next.push({ key, id, name });
       nagaraListContext.splitPath = next;
+      nagaraListContext.hierFilters = hierFiltersFromPath(next);
       repaint();
     });
   });
@@ -4576,6 +4791,7 @@ function bindShakheSplitPathClicks(body, repaint) {
       } else {
         nagaraListContext.splitPath = (nagaraListContext.splitPath || []).slice(0, idx + 1);
       }
+      nagaraListContext.hierFilters = hierFiltersFromPath(nagaraListContext.splitPath);
       repaint();
     });
   });
@@ -4665,12 +4881,21 @@ function paintShakheStatusSplitBody() {
   const filter = nagaraListContext.itemFilter || 'all';
   const path = Array.isArray(nagaraListContext.splitPath) ? nagaraListContext.splitPath : [];
   const allShakhes = nagaraListContext.splitShakhes || [];
-  const scoped = programSplitScopeFilter(allShakhes, path);
+  const hierFilters = nagaraListContext.hierFilters || emptyHierFilters();
+  const scoped = applyHierFilters(programSplitScopeFilter(allShakhes, path), hierFilters);
   const filtered = filterProgramSplitShakhes(scoped, filter);
   const daysSelected =
     filtered[0] && filtered[0].daysSelected != null
       ? filtered[0].daysSelected
       : nagaraVaradiRangeDays().count || 0;
+  const showHierFilters = filter !== 'yes';
+  const filtersHtml = showHierFilters
+    ? hierLevelFiltersHtml(
+        filterProgramSplitShakhes(allShakhes, filter),
+        nagaraListContext.entityLevel,
+        hierFilters
+      )
+    : '';
   let summary;
   let tableHtml;
   if (filter === 'yes') {
@@ -4702,7 +4927,8 @@ function paintShakheStatusSplitBody() {
       `</div>`;
     tableHtml = paintShakheYojitaListTable(filtered);
   }
-  body.innerHTML = summary + programSplitPathHtml(path) + tableHtml;
+  body.innerHTML = summary + filtersHtml + programSplitPathHtml(path) + tableHtml;
+  if (showHierFilters) bindHierLevelFilters(body, paintShakheStatusSplitBody);
   bindShakheSplitPathClicks(body, paintShakheStatusSplitBody);
   body.querySelectorAll('button[data-edit-id]').forEach((btn) => {
     btn.addEventListener('click', () => openEditShakhe(btn.getAttribute('data-edit-id')));
@@ -4755,6 +4981,7 @@ async function openShakheStatusSplit(opts) {
     titleName: entityName,
     itemFilter: keepFilter === 'yojita' ? 'all' : keepFilter,
     splitPath: [],
+    hierFilters: emptyHierFilters(),
     splitShakhes: [],
     splitRunningCount: 0,
     splitYojitaCount: 0,
