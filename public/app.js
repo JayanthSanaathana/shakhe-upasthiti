@@ -3242,7 +3242,9 @@ function reportPlaceLabel(level, name) {
           ? 'ಜಿಲ್ಲಾ/ಭಾಗ'
           : level === 'nagara'
             ? 'ತಾಲ್ಲೂಕು/ನಗರ'
-            : '';
+            : level === 'vasati'
+              ? 'ವಸತಿ/ಮಂಡಲ'
+              : '';
   const text = String(name || '').trim();
   return text ? `${prefix} - ${text}` : prefix;
 }
@@ -3320,6 +3322,21 @@ function setNagaraReportPlace(data) {
     rightEl.textContent = reportPlaceLabel(
       'bhag',
       (data && data.bhag && data.bhag.name) || reportScopeEntityName || ''
+    );
+    return;
+  }
+  // Vasati drill: shift Nagara to the left, Vasati on the right.
+  if (data && data.scope === 'vasati') {
+    leftEl.textContent = reportPlaceLabel(
+      'nagara',
+      (data.nagar && data.nagar.name) || nagaraName || reportScopeEntityName || ''
+    );
+    rightEl.textContent = reportPlaceLabel(
+      'vasati',
+      (data.vasati && data.vasati.name) ||
+        (document.getElementById('nagara-report-title') &&
+          document.getElementById('nagara-report-title').dataset.vasatiTitle) ||
+        ''
     );
     return;
   }
@@ -3742,10 +3759,11 @@ async function openNagaraVasatiReport(vasatiId, titleName, kind) {
     nagaraReportKind = kind;
     nagaraReportCache = data; // keep toggles (+/−) on this vasati view, not the parent cache
     setNagaraReportTitle(kind);
+    const titleEl = document.getElementById('nagara-report-title');
+    if (titleEl) titleEl.dataset.vasatiTitle = titleName || (data.vasati && data.vasati.name) || '';
     setNagaraReportPlace(data);
     showScreen(nagaraReportView);
     paintNagaraReport(data);
-    document.getElementById('nagara-report-title').dataset.vasatiTitle = titleName || '';
   } finally {
     setNagaraReportLoading(false);
   }
