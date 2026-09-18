@@ -3716,7 +3716,7 @@ function paintNagaraShakheVaradi(data) {
         `<tr>` +
         `<td>${nameCell}</td>` +
         (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td>` + (upavasatiOpen ? `<td class="num">${withShakhe}</td><td class="num days-ran-placeholder">·</td><td class="num">${withoutShakhe}</td>` : '<td class="num">')) +
-        (yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
+        (yojitaOpen ? `<td class="num">${yojita}</td>` : '<td class="num"></td>') +
         `<td class="num">${running}</td>` +
         (daysOpen ? daysCells : `<td class="num days-ran-placeholder">·</td>`) +
         `<td class="num">${notRunning}</td>` +
@@ -3745,9 +3745,8 @@ function paintNagaraShakheVaradi(data) {
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
-    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td><td class="num">${cell(tot.upavasatiWithShakheCount)}</td>`) +
-    (isVasatiReport ? '' : (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num">')) +
-    (yojitaOpen ? `<td class="num">${cell(tot.yojitaShakheCount)}</td>` : '') +
+    (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td>` + (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num">')) +
+    (yojitaOpen ? `<td class="num">${cell(tot.yojitaShakheCount)}</td>` : '<td class="num"></td>') +
     `<td class="num">${cell(tot.nadayuthiruvaShakheCount)}</td>` +
     totDaysCells +
     `<td class="num">${cell(tot.nadayadaShakheCount)}</td>` +
@@ -3847,8 +3846,8 @@ function paintNagaraProgramVaradi(data) {
       (upavasatiOpen ? `<th class="num">${stackedLabel('ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe')}</th>` : '') +
       `<th class="num"><button type="button" class="days-ran-toggle" data-upavasati-toggle="1" title="${upavasatiOpen ? 'Hide' : 'Show'}">${upavasatiOpen ? '−' : '+'}</button></th>` +
       (upavasatiOpen ? `<th class="num">${stackedLabel('ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe')}</th>` : '')) +
-    yojitaOpen ? `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">−</button> ${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` :
-      `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">+</button></th>` +
+    (yojitaOpen ? `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">−</button> ${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` :
+      `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">+</button></th>`) +
     `<th class="num">${stackedLabel('ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu')}</th>` +
     `<th class="num">${stackedLabel('ನಡೆಯದ ಶಾಖೆಗಳು/Nadayada Shakhegalu')}</th>` +
     itemHeads +
@@ -3951,7 +3950,7 @@ function paintNagaraProgramVaradi(data) {
         `<tr>` +
         `<td>${nameCell}</td>` +
         (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td>` + (upavasatiOpen ? `<td class="num">${withShakhe}</td><td class="num days-ran-placeholder">·</td><td class="num">${withoutShakhe}</td>` : '<td class="num">')) +
-        (yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
+        (yojitaOpen ? `<td class="num">${yojita}</td>` : '<td class="num"></td>') +
         `<td class="num">${shakheRunningRatioLink(running, yojita, runningOpts)}</td>` +
         `<td class="num">${shakheRunningRatioLink(nadayada, yojita, nadayadaOpts)}</td>` +
         itemCells +
@@ -3976,7 +3975,7 @@ function paintNagaraProgramVaradi(data) {
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
     (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td>` + (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num">')) +
-    (yojitaOpen ? `<td class="num">${cell(totYojita)}</td>` : '') +
+    (yojitaOpen ? `<td class="num">${cell(totYojita)}</td>` : '<td class="num"></td>') +
     `<td class="num">${programRatioText(totRunning, totYojita)}</td>` +
     `<td class="num">${programRatioText(totNadayada, totYojita)}</td>` +
     footItems +
