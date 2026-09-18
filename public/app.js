@@ -3539,9 +3539,12 @@ function paintScopedUpavasatiListTable(items) {
       name: item.name || '—',
       shakheCount: item.shakheCount || 0,
     };
+    // Always materialize every visible hierarchy key so rowspan columns stay aligned
+    // for Total / With Shakhe / Without Shakhe alike.
     fieldKeys.forEach((key) => {
-      row[key] = programSplitEntityName(item[key]);
-      row[`${key}Id`] = (item[key] && item[key].id) || '';
+      const ent = item[key] || null;
+      row[key] = programSplitEntityName(ent);
+      row[`${key}Id`] = (ent && ent.id) || '';
     });
     return row;
   });
@@ -3553,6 +3556,11 @@ function paintScopedUpavasatiListTable(items) {
     ? `<th class="num">${stackedLabel('ಶಾಖೆ/Shakhe')}</th>`
     : `<th>${stackedLabel(LABEL_UPAVASATI)}</th><th class="num">${stackedLabel('ಶಾಖೆ/Shakhe')}</th>`;
   const leafCount = hasUpavasatiCol ? 1 : 2;
+  const colgroup =
+    `<colgroup>` +
+    fieldKeys.map(() => `<col class="col-hier">`).join('') +
+    (hasUpavasatiCol ? `<col class="col-num">` : `<col class="col-hier"><col class="col-num">`) +
+    `</colgroup>`;
   const rows = display
     .map((row, idx) => {
       const hier = shakheGroupedHierCells(display, spans, fieldKeys, idx);
@@ -3564,7 +3572,9 @@ function paintScopedUpavasatiListTable(items) {
     })
     .join('');
   return (
-    `<div class="table-wrap"><table class="varadi-table shakhe-list-table shakhe-yojita-table"><thead><tr>` +
+    `<div class="table-wrap"><table class="varadi-table shakhe-list-table shakhe-yojita-table">` +
+    colgroup +
+    `<thead><tr>` +
     hierHeads +
     leafHeads +
     `</tr></thead><tbody>${
@@ -4255,6 +4265,10 @@ function sortProgramSplitShakhes(shakhes) {
   return (shakhes || []).slice().sort((a, b) => {
     const keys = ['vibhag', 'bhag', 'nagar', 'vasati', 'upavasati'];
     for (const key of keys) {
+      // Sort by id first so rowspan groups stay consecutive (same name ≠ same entity).
+      const aid = (a[key] && a[key].id) || '';
+      const bid = (b[key] && b[key].id) || '';
+      if (aid !== bid) return String(aid).localeCompare(String(bid));
       const av = programSplitEntityName(a[key]);
       const bv = programSplitEntityName(b[key]);
       if (av !== bv) return av.localeCompare(bv);

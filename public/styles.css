@@ -2126,13 +2126,37 @@ h1.report-title {
   text-align: center;
 }
 
-/* Yojita / scoped Upavasati grouped hierarchy tables */
+/* Yojita / scoped Upavasati grouped hierarchy tables (Total / With / Without) */
+#nagara-list-body .shakhe-yojita-table {
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+#nagara-list-body .shakhe-yojita-table col.col-hier {
+  min-width: 6rem;
+}
+
+#nagara-list-body .shakhe-yojita-table col.col-num {
+  min-width: 3.5rem;
+  width: 4.5rem;
+}
+
+/* Rowspan continuation rows: don't treat first visible cell as the name column. */
+#nagara-list-body .shakhe-yojita-table tbody td:first-child {
+  text-align: center;
+  min-width: 4.75rem;
+}
+
+#nagara-list-body .shakhe-yojita-table thead th:first-child,
+#nagara-list-body .shakhe-yojita-table tbody td.cell-group {
+  text-align: left;
+  min-width: 5.5rem;
+}
+
 #nagara-list-body .shakhe-yojita-table td.cell-group {
   font-weight: 700;
-  text-align: left;
   vertical-align: top;
   white-space: normal;
-  min-width: 5.5rem;
   max-width: 10rem;
   background: color-mix(in srgb, var(--bg) 55%, #fff);
 }
@@ -2141,6 +2165,11 @@ h1.report-title {
   font-weight: 700;
   text-align: left;
   white-space: normal;
+}
+
+#nagara-list-body .shakhe-yojita-table td.cell-text {
+  text-align: left;
+  vertical-align: middle;
 }
 
 #nagara-list-body .shakhe-yojita-table td.num {
