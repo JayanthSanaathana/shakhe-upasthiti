@@ -3570,9 +3570,9 @@ function paintNagaraShakheVaradi(data) {
       `<th class="num" rowspan="2">${stackedLabel('ಒಟ್ಟು ಉಪವಸತಿ/Total Upavasati')}</th>` +
       `<th class="num" rowspan="2">${stackedLabel('ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe')}</th>` +
       `<th class="num" rowspan="2">${stackedLabel('ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe')}</th>`) +
-    (isVasatiReport ? '' : `<th class="num" rowspan="2">` +
+    `<th class="num" rowspan="2">` +
       `<button type="button" class="days-ran-toggle" data-yojita-toggle="1" aria-expanded="${yojitaOpen ? 'true' : 'false'}" title="${yojitaOpen ? 'Hide' : 'Show'}">${yojitaOpen ? '−' : '+'}</button> ` +
-      `${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>`) +
+      `${yojitaOpen ? stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe') : ''}</th>` +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu')}</th>` +
     daysGroupHead +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯದ ಶಾಖೆ/Nadayada Shakhe')}</th>` +
@@ -3713,7 +3713,7 @@ function paintNagaraShakheVaradi(data) {
         `<td>${nameCell}</td>` +
         (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td><td class="num">${withShakhe}</td>`) +
         (isVasatiReport ? '' : `<td class="num">${withoutShakhe}</td>`) +
-        (isVasatiReport || yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
+        (yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
         `<td class="num">${running}</td>` +
         (daysOpen ? daysCells : `<td class="num days-ran-placeholder">·</td>`) +
         `<td class="num">${notRunning}</td>` +
@@ -3738,13 +3738,13 @@ function paintNagaraShakheVaradi(data) {
       return `<td class="num">${cell(totBuckets[i] || 0)}</td>`;
     }).join('')
     : `<td class="num days-ran-placeholder">·</td>`;
-  const colCount = (isVasatiReport ? 10 : (yojitaOpen ? 13 : 12)) + (daysOpen ? dayCount + 1 : 1);
+  const colCount = (isVasatiReport ? (yojitaOpen ? 10 : 9) : (yojitaOpen ? 13 : 12)) + (daysOpen ? dayCount + 1 : 1);
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
     (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td><td class="num">${cell(tot.upavasatiWithShakheCount)}</td>`) +
     (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>`) +
-    (isVasatiReport || yojitaOpen ? `<td class="num">${cell(tot.yojitaShakheCount)}</td>` : '') +
+    (yojitaOpen ? `<td class="num">${cell(tot.yojitaShakheCount)}</td>` : '') +
     `<td class="num">${cell(tot.nadayuthiruvaShakheCount)}</td>` +
     totDaysCells +
     `<td class="num">${cell(tot.nadayadaShakheCount)}</td>` +
@@ -3834,9 +3834,8 @@ function paintNagaraProgramVaradi(data) {
       `<th class="num">${stackedLabel('ಒಟ್ಟು ಉಪವಸತಿ/Total Upavasati')}</th>` +
       `<th class="num">${stackedLabel('ಶಾಖೆ ಯೋಜನೆ ಆಗಿರುವ ಉಪವಸತಿ/Upavasati with Shakhe')}</th>` +
       `<th class="num">${stackedLabel('ಶಾಖೆ ಇಲ್ಲದ ಉಪವಸತಿ/Upavasatis without Shakhe')}</th>`) +
-    (isVasatiReport ? `<th class="num">${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` :
-      yojitaOpen ? `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">−</button> ${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` :
-        `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">+</button></th>`) +
+    yojitaOpen ? `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">−</button> ${stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe')}</th>` :
+      `<th class="num"><button type="button" class="days-ran-toggle" data-yojita-toggle="1">+</button></th>` +
     `<th class="num">${stackedLabel('ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu')}</th>` +
     `<th class="num">${stackedLabel('ನಡೆಯದ ಶಾಖೆಗಳು/Nadayada Shakhegalu')}</th>` +
     itemHeads +
@@ -3939,7 +3938,7 @@ function paintNagaraProgramVaradi(data) {
         `<tr>` +
         `<td>${nameCell}</td>` +
         (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td><td class="num">${withShakhe}</td><td class="num">${withoutShakhe}</td>`) +
-        (isVasatiReport || yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
+        (yojitaOpen ? `<td class="num">${yojita}</td>` : '') +
         `<td class="num">${shakheRunningRatioLink(running, yojita, runningOpts)}</td>` +
         `<td class="num">${shakheRunningRatioLink(nadayada, yojita, nadayadaOpts)}</td>` +
         itemCells +
@@ -3959,12 +3958,12 @@ function paintNagaraProgramVaradi(data) {
   const footItems = catalog
     .map((item) => `<td class="num">${programRatioText(totCounts[item.id] || 0, totRunning)}</td>`)
     .join('');
-  const colCount = (isVasatiReport ? 4 : (yojitaOpen ? 7 : 6)) + catalog.length;
+  const colCount = (isVasatiReport ? (yojitaOpen ? 4 : 3) : (yojitaOpen ? 7 : 6)) + catalog.length;
   const foot =
     `<tr class="report-total-row">` +
     `<td>${stackedLabel('ಒಟ್ಟು/Total')}</td>` +
     (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td><td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>`) +
-    (isVasatiReport || yojitaOpen ? `<td class="num">${cell(totYojita)}</td>` : '') +
+    (yojitaOpen ? `<td class="num">${cell(totYojita)}</td>` : '') +
     `<td class="num">${programRatioText(totRunning, totYojita)}</td>` +
     `<td class="num">${programRatioText(totNadayada, totYojita)}</td>` +
     footItems +
