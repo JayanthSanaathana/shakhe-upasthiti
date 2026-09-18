@@ -2126,6 +2126,33 @@ h1.report-title {
   text-align: center;
 }
 
+/* Yojita / scoped Upavasati grouped hierarchy tables */
+#nagara-list-body .shakhe-yojita-table td.cell-group {
+  font-weight: 700;
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+  min-width: 5.5rem;
+  max-width: 10rem;
+  background: color-mix(in srgb, var(--bg) 55%, #fff);
+}
+
+#nagara-list-body .shakhe-yojita-table td.cell-group button.program-split-drill {
+  font-weight: 700;
+  text-align: left;
+  white-space: normal;
+}
+
+#nagara-list-body .shakhe-yojita-table td.num {
+  text-align: center;
+  vertical-align: middle;
+  min-width: 3.5rem;
+}
+
+#nagara-list-body .shakhe-yojita-table th.num {
+  text-align: center;
+}
+
 #varadi-detail .modal-box {
   max-width: 28rem;
   padding-top: 2.4rem;

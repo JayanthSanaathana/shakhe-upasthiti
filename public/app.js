@@ -4389,16 +4389,32 @@ function programSplitBaseFieldIndex(level) {
   return idx < 0 ? 0 : idx;
 }
 
-/** Build rowspan map for consecutive equal hierarchy values (by id). */
+/**
+ * Build rowspan map for consecutive equal hierarchy values (by id).
+ * Child columns never span across a parent-column change; blank ids never merge.
+ */
 function programSplitRowspans(rows, fields) {
   const spans = fields.map(() => new Array(rows.length).fill(0));
   for (let c = 0; c < fields.length; c += 1) {
     const idKey = `${fields[c]}Id`;
     let i = 0;
     while (i < rows.length) {
-      let j = i + 1;
       const value = rows[i][idKey];
-      while (j < rows.length && rows[j][idKey] === value) j += 1;
+      let j = i + 1;
+      if (value) {
+        while (j < rows.length && rows[j][idKey] === value) {
+          let parentsMatch = true;
+          for (let p = 0; p < c; p += 1) {
+            const parentKey = `${fields[p]}Id`;
+            if (rows[j][parentKey] !== rows[i][parentKey]) {
+              parentsMatch = false;
+              break;
+            }
+          }
+          if (!parentsMatch) break;
+          j += 1;
+        }
+      }
       spans[c][i] = j - i;
       for (let k = i + 1; k < j; k += 1) spans[c][k] = 0;
       i = j;
