@@ -3346,6 +3346,17 @@ function shakheRunningRatioLink(running, yojita, opts) {
   );
 }
 
+function reportEntityCountLink(count, childLevel, entityId, entityName) {
+  const n = count || 0;
+  if (!childLevel || !entityId || n <= 0) return String(n);
+  return (
+    `<button type="button" class="num-link entity-drill-link" ` +
+    `data-child-level="${escapeHtml(childLevel)}" ` +
+    `data-entity-id="${escapeHtml(entityId)}" ` +
+    `data-entity-name="${escapeHtml(entityName || '')}">${n}</button>`
+  );
+}
+
 function bindNagaraReportListClicks(table) {
   table.querySelectorAll('button.num-link[data-list-kind]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -3559,10 +3570,14 @@ function paintNagaraShakheVaradi(data) {
         : '';
       const totalUpavasati = isLeaf && cid && row.upavasatiCount > 0
         ? `<button type="button" class="num-link"${upavasatiListAttrs}>${row.upavasatiCount}</button>`
-        : cell(row.upavasatiCount);
+        : nextLevel && cid
+          ? reportEntityCountLink(row.upavasatiCount, nextLevel, cid, title)
+          : cell(row.upavasatiCount);
       const withShakhe = isLeaf && cid && row.upavasatiWithShakheCount > 0
         ? `<button type="button" class="num-link"${upavasatiListAttrs} data-list-filter="with-shakhe">${row.upavasatiWithShakheCount}</button>`
-        : cell(row.upavasatiWithShakheCount);
+        : nextLevel && cid
+          ? reportEntityCountLink(row.upavasatiWithShakheCount, nextLevel, cid, title)
+          : cell(row.upavasatiWithShakheCount);
       const running = isLeaf
         ? leafStatusOpts && leafStatusOpts.entityId
           ? shakheStatusCountLink(
@@ -3749,10 +3764,14 @@ function paintNagaraProgramVaradi(data) {
         : '';
       const totalUpavasati = isLeaf && cid && row.upavasatiCount > 0
         ? `<button type="button" class="num-link"${upavasatiListAttrs}>${row.upavasatiCount}</button>`
-        : cell(row.upavasatiCount);
+        : nextLevel && cid
+          ? reportEntityCountLink(row.upavasatiCount, nextLevel, cid, title)
+          : cell(row.upavasatiCount);
       const withShakhe = isLeaf && cid && row.upavasatiWithShakheCount > 0
         ? `<button type="button" class="num-link"${upavasatiListAttrs} data-list-filter="with-shakhe">${row.upavasatiWithShakheCount}</button>`
-        : cell(row.upavasatiWithShakheCount);
+        : nextLevel && cid
+          ? reportEntityCountLink(row.upavasatiWithShakheCount, nextLevel, cid, title)
+          : cell(row.upavasatiWithShakheCount);
       const nadayada =
         row.nadayadaShakheCount != null
           ? row.nadayadaShakheCount
