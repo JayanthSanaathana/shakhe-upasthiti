@@ -3740,6 +3740,7 @@ async function openNagaraVasatiReport(vasatiId, titleName, kind) {
       return;
     }
     nagaraReportKind = kind;
+    nagaraReportCache = data; // keep toggles (+/−) on this vasati view, not the parent cache
     setNagaraReportTitle(kind);
     setNagaraReportPlace(data);
     showScreen(nagaraReportView);
@@ -4013,7 +4014,8 @@ function paintNagaraShakheVaradi(data) {
       e.preventDefault();
       e.stopPropagation();
       shakheDaysColumnsOpen = !shakheDaysColumnsOpen;
-      paintNagaraShakheVaradi(nagaraReportCache || data);
+      // Prefer the painted dataset (vasati/child scope) over any stale parent cache.
+      paintNagaraShakheVaradi(data);
     });
   });
   table.querySelectorAll('[data-yojita-toggle]').forEach((btn) => {
@@ -4021,7 +4023,7 @@ function paintNagaraShakheVaradi(data) {
       e.preventDefault();
       e.stopPropagation();
       yojitaShakheColumnOpen = !yojitaShakheColumnOpen;
-      paintNagaraShakheVaradi(nagaraReportCache || data);
+      paintNagaraShakheVaradi(data);
     });
   });
   table.querySelectorAll('[data-upavasati-toggle]').forEach((btn) => {
@@ -4029,7 +4031,7 @@ function paintNagaraShakheVaradi(data) {
       e.preventDefault();
       e.stopPropagation();
       upavasatiColumnsOpen = !upavasatiColumnsOpen;
-      paintNagaraShakheVaradi(nagaraReportCache || data);
+      paintNagaraShakheVaradi(data);
     });
   });
   table.querySelectorAll('button.shakhe-days-ran-link').forEach((btn) => {
@@ -4256,7 +4258,7 @@ function paintNagaraProgramVaradi(data) {
       e.preventDefault();
       e.stopPropagation();
       yojitaShakheColumnOpen = !yojitaShakheColumnOpen;
-      paintNagaraProgramVaradi(nagaraReportCache || data);
+      paintNagaraProgramVaradi(data);
     });
   });
   table.querySelectorAll('[data-upavasati-toggle]').forEach((btn) => {
@@ -4264,7 +4266,7 @@ function paintNagaraProgramVaradi(data) {
       e.preventDefault();
       e.stopPropagation();
       upavasatiColumnsOpen = !upavasatiColumnsOpen;
-      paintNagaraProgramVaradi(nagaraReportCache || data);
+      paintNagaraProgramVaradi(data);
     });
   });
 }
@@ -4429,7 +4431,12 @@ function bindHierLevelFilters(root, repaint) {
         filters[`${keys[i]}Id`] = '';
       }
       nagaraListContext.hierFilters = filters;
-      nagaraListContext.splitPath = [];
+      // Keep breadcrumb steps above the changed filter (don't jump back to All).
+      const keyIdx = PROGRAM_SPLIT_HIER_FIELDS.findIndex((field) => field.key === key);
+      nagaraListContext.splitPath = (nagaraListContext.splitPath || []).filter((step) => {
+        const si = PROGRAM_SPLIT_HIER_FIELDS.findIndex((field) => field.key === step.key);
+        return si >= 0 && si < keyIdx;
+      });
       repaint();
     });
   });
@@ -4907,6 +4914,8 @@ function shakheHierarchyVisibleFields(shakhes, keys) {
 
 /** Build rowspan-grouped hierarchy cells for one sorted row index. */
 function shakheGroupedHierCells(displayRows, spans, fields, idx) {
+  const path = (nagaraListContext && nagaraListContext.splitPath) || [];
+  const pathKeySet = new Set(path.map((step) => step && step.key).filter(Boolean));
   let cells = '';
   fields.forEach((field, c) => {
     const span = spans[c][idx];
@@ -4914,7 +4923,9 @@ function shakheGroupedHierCells(displayRows, spans, fields, idx) {
     const row = displayRows[idx];
     const name = row[field];
     const id = row[`${field}Id`];
-    const canDrill = Boolean(id) && name !== '—';
+    // Keep deeper levels clickable; don't re-drill keys already fixed in the breadcrumb
+    // (re-clicking them felt like jumping back up a level).
+    const canDrill = Boolean(id) && name !== '—' && !pathKeySet.has(field);
     const inner = canDrill
       ? `<button type="button" class="num-link program-split-drill" ` +
       `data-split-key="${escapeHtml(field)}" data-split-id="${escapeHtml(id)}" ` +
