@@ -2182,6 +2182,50 @@ h1.report-title {
   text-align: center;
 }
 
+#nagara-list-body .upa-shakhe-count-cell {
+  text-align: center;
+  vertical-align: top;
+  min-width: 12rem;
+  max-width: 28rem;
+}
+
+#nagara-list-body .upa-shakhe-count-cell > .upa-shakhe-toggle {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#nagara-list-body .upa-shakhe-details {
+  margin-top: 0.35rem;
+  text-align: left;
+}
+
+#nagara-list-body .upa-shakhe-mini-table {
+  width: max-content;
+  max-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  margin: 0 auto 0 0;
+}
+
+#nagara-list-body .upa-shakhe-mini-table th,
+#nagara-list-body .upa-shakhe-mini-table td {
+  border: 1px solid #8a97ab;
+  padding: 0.28rem 0.4rem;
+  vertical-align: middle;
+}
+
+#nagara-list-body .upa-shakhe-mini-table th {
+  background: #eef3f9;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#nagara-list-body .upa-shakhe-mini-table td.cell-name,
+#nagara-list-body .upa-shakhe-mini-table td.cell-text,
+#nagara-list-body .upa-shakhe-mini-table td.cell-timing {
+  text-align: left;
+}
+
 #varadi-detail .modal-box {
   max-width: 28rem;
   padding-top: 2.4rem;

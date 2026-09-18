@@ -3526,8 +3526,77 @@ function normalizeScopedUpavasatiRows(items) {
   }));
 }
 
+function scopedUpavasatiExpandedSet() {
+  if (!nagaraListContext) return new Set();
+  if (!(nagaraListContext.expandedUpavasatiIds instanceof Set)) {
+    nagaraListContext.expandedUpavasatiIds = new Set(
+      Array.isArray(nagaraListContext.expandedUpavasatiIds)
+        ? nagaraListContext.expandedUpavasatiIds
+        : []
+    );
+  }
+  return nagaraListContext.expandedUpavasatiIds;
+}
+
+/** Yojita-style shakhe detail block shown beside the count when expanded. */
+function scopedUpavasatiShakheDetailsHtml(shakhes) {
+  const list = shakhes || [];
+  if (!list.length) return '';
+  const head =
+    `<table class="upa-shakhe-mini-table"><thead><tr>` +
+    `<th>${stackedLabel('ಶಾಖೆ/Shakhe')}</th>` +
+    `<th>${stackedLabel('ಸಮಯ/Timing')}</th>` +
+    `<th>${stackedLabel('ಪ್ರಕಾರ/Type')}</th>` +
+    `<th>${stackedLabel('ಸ್ಥಳ/Sthala')}</th>` +
+    `<th>${stackedLabel('ತಿದ್ದುಪಡಿ/Edit')}</th>` +
+    `</tr></thead><tbody>`;
+  const rows = list
+    .map((s) => {
+      const timing = TIMING_LABEL[s.timing] || s.timing || '—';
+      const time = s.time || '';
+      const timingHtml = time
+        ? `${escapeHtml(timing)}<span class="cell-sub">${escapeHtml(time)}</span>`
+        : escapeHtml(timing);
+      return (
+        `<tr>` +
+        `<td class="cell-name">${escapeHtml(s.name || '—')}</td>` +
+        `<td class="cell-timing">${timingHtml}</td>` +
+        `<td class="cell-text">${escapeHtml(TYPE_LABEL[s.shakheType] || s.shakheType || '—')}</td>` +
+        `<td class="cell-text">${escapeHtml(s.stanaName || 'ಇಲ್ಲ/Not set')}</td>` +
+        `<td><button type="button" class="edit-link" data-edit-id="${escapeHtml(
+          s.id || ''
+        )}"><span class="th-stack"><span class="th-kn">ತಿದ್ದುಪಡಿ</span><span class="th-en">Edit</span></span></button></td>` +
+        `</tr>`
+      );
+    })
+    .join('');
+  return `${head}${rows}</tbody></table>`;
+}
+
+function scopedUpavasatiShakheCountCell(item, expanded) {
+  const count = Number(item && item.shakheCount) || 0;
+  const id = (item && item.id) || '';
+  const shakhes = (item && item.shakhes) || [];
+  if (!(count > 0) || !id) {
+    return `<td class="num">${escapeHtml(String(count))}</td>`;
+  }
+  const mark = expanded ? '−' : '+';
+  const title = expanded ? 'Hide shakhes' : 'Show shakhes';
+  let html =
+    `<td class="num upa-shakhe-count-cell">` +
+    `<button type="button" class="num-link upa-shakhe-toggle" data-upa-id="${escapeHtml(id)}" ` +
+    `aria-expanded="${expanded ? 'true' : 'false'}" title="${title}">` +
+    `${escapeHtml(String(count))} ${mark}</button>`;
+  if (expanded) {
+    html += `<div class="upa-shakhe-details">${scopedUpavasatiShakheDetailsHtml(shakhes)}</div>`;
+  }
+  html += `</td>`;
+  return html;
+}
+
 function paintScopedUpavasatiListTable(items) {
   const sorted = sortProgramSplitShakhes(items);
+  const expanded = scopedUpavasatiExpandedSet();
   const visibleFields = shakheHierarchyVisibleFields(
     sorted,
     hierarchyKeysForScopeLevel(nagaraListContext && nagaraListContext.entityLevel)
@@ -3563,11 +3632,13 @@ function paintScopedUpavasatiListTable(items) {
     `</colgroup>`;
   const rows = display
     .map((row, idx) => {
+      const item = row._item || {};
+      const isOpen = expanded.has(String(item.id || ''));
       const hier = shakheGroupedHierCells(display, spans, fieldKeys, idx);
+      const countCell = scopedUpavasatiShakheCountCell(item, isOpen);
       const leaf = hasUpavasatiCol
-        ? `<td class="num">${escapeHtml(String(row.shakheCount))}</td>`
-        : `<td class="cell-text">${escapeHtml(row.name)}</td>` +
-          `<td class="num">${escapeHtml(String(row.shakheCount))}</td>`;
+        ? countCell
+        : `<td class="cell-text">${escapeHtml(row.name)}</td>` + countCell;
       return `<tr>${hier}${leaf}</tr>`;
     })
     .join('');
@@ -3582,6 +3653,25 @@ function paintScopedUpavasatiListTable(items) {
       `<tr><td colspan="${visibleFields.length + leafCount}">ಉಪವಸತಿಗಳಿಲ್ಲ/No Upavasatis</td></tr>`
     }</tbody></table></div>`
   );
+}
+
+function bindScopedUpavasatiShakheToggles(root) {
+  if (!root) return;
+  root.querySelectorAll('button.upa-shakhe-toggle').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.getAttribute('data-upa-id');
+      if (!id || !nagaraListContext) return;
+      const set = scopedUpavasatiExpandedSet();
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      paintScopedUpavasatiListBody();
+    });
+  });
+  root.querySelectorAll('button[data-edit-id]').forEach((btn) => {
+    btn.addEventListener('click', () => openEditShakhe(btn.getAttribute('data-edit-id')));
+  });
 }
 
 function paintScopedUpavasatiListBody() {
@@ -3612,6 +3702,7 @@ function paintScopedUpavasatiListBody() {
     summary + filtersHtml + programSplitPathHtml(path) + paintScopedUpavasatiListTable(scoped);
   bindHierLevelFilters(body, paintScopedUpavasatiListBody);
   bindShakheSplitPathClicks(body, paintScopedUpavasatiListBody);
+  bindScopedUpavasatiShakheToggles(body);
 }
 
 async function openScopedUpavasatiList(opts) {
@@ -3637,6 +3728,7 @@ async function openScopedUpavasatiList(opts) {
     titleName,
     splitPath: [],
     hierFilters: initialFilters,
+    expandedUpavasatiIds: new Set(),
     splitUpavasatis: [],
   };
   const errorEl = document.getElementById('nagara-list-error');
