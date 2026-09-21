@@ -1982,6 +1982,17 @@ function personCell(name, phone) {
   return phone || name || '—';
 }
 
+/** Name + phone stacked in a Patti table cell. */
+function personListCellHtml(name, phone) {
+  const n = String(name || '').trim();
+  const p = String(phone || '').trim();
+  if (n && p) {
+    return `<td class="cell-person">${escapeHtml(n)}<span class="cell-sub">${escapeHtml(p)}</span></td>`;
+  }
+  if (n || p) return `<td class="cell-person">${escapeHtml(n || p)}</td>`;
+  return `<td class="cell-person">—</td>`;
+}
+
 function personDetailHtml(person) {
   if (!person) return escapeHtml('—');
   const name = person.name || '';
@@ -2068,6 +2079,9 @@ function shakheListHeadHtml(opts) {
       'ಸಮಯ/Timing',
       'ಪ್ರಕಾರ/Type',
       'ಸ್ಥಳ/Sthala',
+      'ಮುಖಶಿಕ್ಷಕ/Mukhashikshak',
+      'ಕಾರ್ಯವಾಹ/Karyavaha',
+      'ಶಾಖಾ ಪಾಲಕ್/Shakha Palaka',
       'ತಿದ್ದುಪಡಿ/Edit',
     ]
     : [
@@ -2077,6 +2091,9 @@ function shakheListHeadHtml(opts) {
       'ಸಮಯ/Timing',
       'ಪ್ರಕಾರ/Type',
       'ಸ್ಥಳ/Sthala',
+      'ಮುಖಶಿಕ್ಷಕ/Mukhashikshak',
+      'ಕಾರ್ಯವಾಹ/Karyavaha',
+      'ಶಾಖಾ ಪಾಲಕ್/Shakha Palaka',
       'ತಿದ್ದುಪಡಿ/Edit',
     ];
   if (!omitPlace && hierarchyKeys.length) {
@@ -2133,6 +2150,9 @@ function shakheListCells(s, opts) {
     `<td class="cell-timing">${timingHtml}</td>` +
     `<td class="cell-text">${escapeHtml(TYPE_LABEL[s.shakheType] || s.shakheType || '—')}</td>` +
     `<td class="cell-text">${escapeHtml(s.stanaName || 'ಇಲ್ಲ/Not set')}</td>` +
+    personListCellHtml(s.mukhashikshakName, s.mukhashikshakPhone) +
+    personListCellHtml(s.karyavahaName, s.karyavahaPhone) +
+    personListCellHtml(s.shakhaPalakaName, s.shakhaPalakaPhone) +
     `<td><button type="button" class="edit-link" data-edit-id="${escapeHtml(s.id)}"><span class="th-stack"><span class="th-kn">ತಿದ್ದುಪಡಿ</span><span class="th-en">Edit</span></span></button></td>` +
     (withDelete
       ? `<td><button type="button" class="delete-link" data-delete-id="${escapeHtml(s.id)}" data-delete-name="${escapeHtml(s.name || '')}"><span class="th-stack"><span class="th-kn">ಅಳಿಸಿ</span><span class="th-en">Delete</span></span></button></td>`
