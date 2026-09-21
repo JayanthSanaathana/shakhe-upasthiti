@@ -3902,7 +3902,7 @@ function paintNagaraShakheVaradi(data) {
   const showNadayadaSlot = nadayadaOpen || !hideBlanks;
   const showDailySlot = dailyOpen || !hideBlanks;
   const showDaysRanSlot = daysOpen || !hideBlanks;
-  const saptahaColspan = dailyOpen ? dailyDates.length + 2 : 1;
+  const saptahaColspan = dailyOpen ? dailyDates.length : 1;
   const dailyGroupHead = !showDailySlot
     ? ''
     : `<th class="num group-head" ${dailyOpen ? `colspan="${saptahaColspan}"` : 'rowspan="2"'}>` +
@@ -3910,13 +3910,11 @@ function paintNagaraShakheVaradi(data) {
     `aria-label="${dailyOpen ? 'Hide' : 'Show'} Shakha Saptaha">${dailyOpen ? '−' : '+'}</button> ` +
     `${dailyOpen ? `${stackedLabel('ಶಾಖಾ ಸಪ್ತಾಹ/Shakha Saptaha')}<br><small>21–27 Sep 2026</small>` : ''}</th>`;
   const dailySubHeads = dailyOpen
-    ? `<th class="num">${stackedLabel('21–27 ಒಂದು ದಿನ ನಡೆದ ಶಾಖೆಗಳು')}</th>` +
-      dailyDates.map((date) =>
+    ? dailyDates.map((date) =>
         `<th class="num" title="${escapeHtml(formatDateDisplay(date))}">${stackedLabel(
           `${Number(date.slice(8))} ನಡೆದ ಶಾಖೆಗಳು/${Number(date.slice(8))} Nadeda Shakhegalu`
         )}</th>`
-      ).join('') +
-      `<th class="num">${stackedLabel('21–27 ನಡೆಯದ ಶಾಖೆಗಳು')}</th>`
+      ).join('')
     : '';
   const dailyCells = (rowOrCounts, opts) => {
     if (!showDailySlot) return '';
@@ -3924,19 +3922,9 @@ function paintNagaraShakheVaradi(data) {
     const counts = rowOrCounts && rowOrCounts.dailyShakheCounts
       ? rowOrCounts.dailyShakheCounts
       : rowOrCounts || {};
-    const ran = rowOrCounts && rowOrCounts.saptahaRanCount != null
-      ? rowOrCounts.saptahaRanCount
-      : 0;
-    const nadayada = rowOrCounts && rowOrCounts.saptahaNadayadaCount != null
-      ? rowOrCounts.saptahaNadayadaCount
-      : 0;
-    return (
-      `<td class="num">${saptahaWeekCountLink(ran, 'ran', opts)}</td>` +
-      dailyDates.map((date) =>
-        `<td class="num">${dailyShakheCountLink(counts[date], date, opts)}</td>`
-      ).join('') +
-      `<td class="num">${saptahaWeekCountLink(nadayada, 'noran', opts)}</td>`
-    );
+    return dailyDates.map((date) =>
+      `<td class="num">${dailyShakheCountLink(counts[date], date, opts)}</td>`
+    ).join('');
   };
   const daysColspan = daysOpen ? dayCount + 1 : 1;
   const toggleLabel = daysOpen ? '−' : '+';
@@ -4155,7 +4143,7 @@ function paintNagaraShakheVaradi(data) {
     (isVasatiReport ? 0 : upavasatiOpen ? 4 : 2) +
     (showYojitaSlot ? 1 : 0) +
     (showRunningSlot ? 1 : 0) +
-    (showDailySlot ? (dailyOpen ? dailyDates.length + 2 : 1) : 0) +
+    (showDailySlot ? (dailyOpen ? dailyDates.length : 1) : 0) +
     (showDaysRanSlot ? (daysOpen ? dayCount + 1 : 1) : 0) +
     (showNadayadaSlot ? 1 : 0) +
     5 + // averages
