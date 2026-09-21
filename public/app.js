@@ -358,6 +358,7 @@ let nagaraReportLoadSeq = 0;
 let nagaraReportKind = 'shakhe';
 /** Excel-style expand/collapse for days-ran bucket columns on Shakhe Varadi. */
 let shakheDaysColumnsOpen = false;
+let shakheDailyColumnsOpen = false;
 let yojitaShakheColumnOpen = false;
 let upavasatiColumnsOpen = true;
 /** Where view/edit should return: 'patti' | 'nagara-varadi-list' | 'nagara-varadi' */
@@ -478,6 +479,8 @@ function restoreView(view) {
           entityName: nagaraListContext.entityName || '',
           vasatiId: nagaraListContext.vasatiId || '',
           itemFilter: nagaraListContext.itemFilter || 'all',
+          attendanceDate: nagaraListContext.attendanceDate || '',
+          upavasatiId: nagaraListContext.upavasatiId || '',
         });
       }
       if (
@@ -616,6 +619,7 @@ function logoutLocal() {
   nagaraListContext = null;
   nagaraReportKind = 'shakhe';
   shakheDaysColumnsOpen = false;
+  shakheDailyColumnsOpen = false;
   yojitaShakheColumnOpen = false;
   upavasatiColumnsOpen = true;
   shakheReturnTo = 'patti';
@@ -1866,6 +1870,8 @@ function returnToNagaraListContext() {
       entityName: ctx.entityName || '',
       vasatiId: ctx.vasatiId || '',
       itemFilter: ctx.itemFilter || 'all',
+      attendanceDate: ctx.attendanceDate || '',
+      upavasatiId: ctx.upavasatiId || '',
     });
   }
   if (ctx.mode === 'shakhe-days-ran' && ctx.entityId && ctx.entityLevel && ctx.daysRanExact != null) {
@@ -2390,6 +2396,8 @@ document.getElementById('nagara-list-back').addEventListener('click', () => {
         entityName: ret.entityName || '',
         vasatiId: ret.vasatiId || '',
         itemFilter: ret.itemFilter || 'all',
+        attendanceDate: ret.attendanceDate || '',
+        upavasatiId: ret.upavasatiId || '',
       });
     }
     if (ret.mode === 'shakhe-days-ran' && ret.entityId && ret.entityLevel && ret.daysRanExact != null) {
@@ -3808,6 +3816,20 @@ function daysRanBucketLink(count, daysExact, opts) {
   );
 }
 
+function dailyShakheCountLink(count, date, opts) {
+  const n = Number(count) || 0;
+  if (!n || !opts || !opts.entityId || !opts.entityLevel) return String(n);
+  return `<button type="button" class="num-link shakhe-daily-link" ` +
+    `data-date="${escapeHtml(date)}" data-entity-level="${escapeHtml(opts.entityLevel)}" ` +
+    `data-entity-id="${escapeHtml(opts.entityId)}" data-entity-name="${escapeHtml(opts.entityName || '')}" ` +
+    `data-vasati-id="${escapeHtml(opts.vasatiId || '')}" ` +
+    `data-upavasati-id="${escapeHtml(opts.upavasatiId || '')}">${n}</button>`;
+}
+
+function dailyShakheDates(data) {
+  return Array.isArray(data.dailyDates) ? data.dailyDates : [];
+}
+
 function paintNagaraShakheVaradi(data) {
   const table = document.getElementById('nagara-report-table');
   const cell = (v) => (v == null ? '—' : String(v));
@@ -3819,6 +3841,18 @@ function paintNagaraShakheVaradi(data) {
   const emptyMsg = isLeaf ? 'ವಸತಿ/ಮಂಡಲಗಳಿಲ್ಲ/No vasatis' : 'ಘಟಕಗಳಿಲ್ಲ/No entities';
   const dayCount = Math.max(0, Number((data && data.dayCount) || nagaraVaradiRangeDays().count || 0));
   const daysOpen = Boolean(shakheDaysColumnsOpen);
+  const dailyDates = dailyShakheDates(data);
+  const dailyOpen = shakheDailyColumnsOpen && dailyDates.length > 0;
+  const dailyGroupHead = `<th class="num group-head" ${dailyOpen ? `colspan="${dailyDates.length}"` : 'rowspan="2"'}>` +
+    `<button type="button" class="days-ran-toggle" data-daily-toggle="1" aria-expanded="${dailyOpen}" ` +
+    `aria-label="${dailyOpen ? 'Hide' : 'Show'} daily Shakhe counts">${dailyOpen ? '−' : '+'}</button> ` +
+    `${stackedLabel('ದಿನವಾರು ನಡೆದ ಶಾಖೆಗಳು/Daily Nadeda Shakhegalu')}<br><small>21–27 Sep 2026</small></th>`;
+  const dailySubHeads = dailyOpen ? dailyDates.map((date) =>
+    `<th class="num" title="${escapeHtml(formatDateDisplay(date))}">${stackedLabel(
+      `${Number(date.slice(8))} ನಡೆದ ಶಾಖೆಗಳು/${Number(date.slice(8))} Nadeda Shakhegalu`
+    )}</th>`).join('') : '';
+  const dailyCells = (counts, opts) => dailyOpen ? dailyDates.map((date) =>
+    `<td class="num">${dailyShakheCountLink((counts || {})[date], date, opts)}</td>`).join('') : '<td class="num"></td>';
   const yojitaOpen = Boolean(yojitaShakheColumnOpen);
   const upavasatiOpen = Boolean(upavasatiColumnsOpen);
   const daysColspan = daysOpen ? dayCount + 1 : 1;
@@ -3852,12 +3886,14 @@ function paintNagaraShakheVaradi(data) {
       `<button type="button" class="days-ran-toggle" data-yojita-toggle="1" aria-expanded="${yojitaOpen ? 'true' : 'false'}" title="${yojitaOpen ? 'Hide' : 'Show'}">${yojitaOpen ? '−' : '+'}</button> ` +
       `${yojitaOpen ? stackedLabel('ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe') : ''}</th>` +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu')}</th>` +
+    dailyGroupHead +
     daysGroupHead +
     `<th class="num" rowspan="2">${stackedLabel('ನಡೆಯದ ಶಾಖೆ/Nadayada Shakhe')}</th>` +
     `<th class="num group-head" colspan="5">${stackedLabel('ಸರಾಸರಿ/Average')}</th>` +
     `<th class="num group-head" colspan="2">${stackedLabel('ಒಟ್ಟು ಸಂಪರ್ಕ/Ottu samparka')}</th>` +
     `</tr>` +
     `<tr>` +
+    dailySubHeads +
     daysSubHeads +
     `<th class="num">${stackedLabel('ತರುಣ/Taruna')}</th>` +
     `<th class="num">${stackedLabel('ಬಾಲಕ/Balaka')}</th>` +
@@ -3992,6 +4028,7 @@ function paintNagaraShakheVaradi(data) {
         (isVasatiReport ? '' : `<td class="num">${totalUpavasati}</td>` + (upavasatiOpen ? `<td class="num">${withShakhe}</td><td class="num days-ran-placeholder">·</td><td class="num">${withoutShakhe}</td>` : '<td class="num"></td>')) +
         (yojitaOpen ? `<td class="num">${yojita}</td>` : '<td class="num"></td>') +
         `<td class="num">${running}</td>` +
+        dailyCells(row.dailyShakheCounts, daysOpts && { ...daysOpts, entityName: title }) +
         (daysOpen ? daysCells : `<td class="num days-ran-placeholder">·</td>`) +
         `<td class="num">${notRunning}</td>` +
         `<td class="num">${avgCell(a.taruna)}</td>` +
@@ -4021,6 +4058,7 @@ function paintNagaraShakheVaradi(data) {
     (isVasatiReport ? 0 : upavasatiOpen ? 4 : 2) +
     1 + // yojita slot
     1 + // running
+    (dailyOpen ? dailyDates.length : 1) +
     (daysOpen ? dayCount + 1 : 1) +
     1 + // nadayada
     5 + // averages
@@ -4031,6 +4069,12 @@ function paintNagaraShakheVaradi(data) {
     (isVasatiReport ? '' : `<td class="num">${cell(tot.upavasatiCount)}</td>` + (upavasatiOpen ? `<td class="num">${cell(tot.upavasatiWithShakheCount)}</td><td class="num days-ran-placeholder">·</td><td class="num">${cell(tot.upavasatiWithoutShakheCount)}</td>` : '<td class="num"></td>')) +
     (yojitaOpen ? `<td class="num">${cell(tot.yojitaShakheCount)}</td>` : '<td class="num"></td>') +
     `<td class="num">${cell(tot.nadayuthiruvaShakheCount)}</td>` +
+    dailyCells(tot.dailyShakheCounts, {
+      entityLevel: level,
+      entityId: reportScopeEntityId || nagaraId || '',
+      entityName: reportScopeEntityName || nagaraName || '',
+      vasatiId: isVasatiReport && data.vasati ? data.vasati.id : '',
+    }) +
     totDaysCells +
     `<td class="num">${cell(tot.nadayadaShakheCount)}</td>` +
     `<td class="num">${avgCell(ta.taruna)}</td>` +
@@ -4047,6 +4091,23 @@ function paintNagaraShakheVaradi(data) {
     `<tbody>${body || `<tr><td colspan="${colCount}">${emptyMsg}</td></tr>`}</tbody>` +
     (data.rows && data.rows.length ? `<tfoot>${foot}</tfoot>` : '');
   bindNagaraReportListClicks(table);
+  table.querySelectorAll('[data-daily-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      shakheDailyColumnsOpen = !shakheDailyColumnsOpen;
+      paintNagaraShakheVaradi(data);
+    });
+  });
+  table.querySelectorAll('button.shakhe-daily-link').forEach((btn) => {
+    btn.addEventListener('click', () => openShakheStatusSplit({
+      attendanceDate: btn.getAttribute('data-date'),
+      entityLevel: btn.getAttribute('data-entity-level'),
+      entityId: btn.getAttribute('data-entity-id'),
+      entityName: btn.getAttribute('data-entity-name') || '',
+      vasatiId: btn.getAttribute('data-vasati-id') || '',
+      upavasatiId: btn.getAttribute('data-upavasati-id') || '',
+      itemFilter: 'yes',
+    }));
+  });
   table.querySelectorAll('[data-days-ran-toggle]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -5017,6 +5078,35 @@ function paintShakheYojitaListTable(shakhes) {
   );
 }
 
+function paintDailyShakheListTable(shakhes) {
+  const sorted = sortProgramSplitShakhes(shakhes);
+  const visibleFields = shakheHierarchyVisibleFields(sorted,
+    hierarchyKeysForScopeLevel(nagaraListContext && nagaraListContext.entityLevel));
+  const keys = visibleFields.map((field) => field.key);
+  const display = shakhesToHierDisplayRows(sorted, keys);
+  const spans = programSplitRowspans(display, keys);
+  const metrics = [
+    ['taruna', 'ತರುಣ/Taruna'], ['balaka', 'ಬಾಲಕ/Balaka'], ['total', 'ಒಟ್ಟು/Total'],
+    ['shishu', 'ಶಿಶು/Shishu'], ['mataBhagi', 'ಮಾತಾ-ಭಗಿನಿ/Mata Bhagini'],
+  ];
+  const heads = visibleFields.map((field) => `<th>${stackedLabel(field.label)}</th>`).join('') +
+    `<th>${stackedLabel('ಶಾಖೆ/Shakhe')}</th><th>${stackedLabel('ಸಮಯ/Time')}</th>` +
+    metrics.map(([, label]) => `<th class="num">${stackedLabel(label)}</th>`).join('');
+  const rows = display.map((row, index) => {
+    const s = row._shakhe;
+    const attendance = s.upasthiti || {};
+    const time = [TIMING_LABEL[s.timing] || s.timing, s.time].filter(Boolean).join(' · ') || '—';
+    return `<tr>${shakheGroupedHierCells(display, spans, keys, index)}` +
+      `<td>${escapeHtml(s.name || '—')}</td><td>${escapeHtml(time)}</td>` +
+      metrics.map(([key]) => `<td class="num">${escapeHtml(String(attendance[key] ?? '—'))}</td>`).join('') + '</tr>';
+  }).join('');
+  const totals = metrics.map(([key]) => `<td class="num">${sorted.reduce((sum, s) => sum + Number((s.upasthiti || {})[key] || 0), 0)}</td>`).join('');
+  return `<div class="table-wrap"><table class="varadi-table shakhe-list-table shakhe-yojita-table">` +
+    `<thead><tr>${heads}</tr></thead><tbody>${rows || `<tr><td colspan="${keys.length + 7}">ಶಾಖೆಗಳಿಲ್ಲ/No shakhes</td></tr>`}</tbody>` +
+    (sorted.length ? `<tfoot><tr class="report-total-row"><td colspan="${keys.length + 2}">${stackedLabel('ಒಟ್ಟು/Total')}</td>${totals}</tr></tfoot>` : '') +
+    '</table></div>';
+}
+
 function paintShakheStatusSplitBody() {
   const body = document.getElementById('nagara-list-body');
   if (!body || !nagaraListContext || nagaraListContext.mode !== 'shakhe-status-split') return;
@@ -5030,7 +5120,8 @@ function paintShakheStatusSplitBody() {
     filtered[0] && filtered[0].daysSelected != null
       ? filtered[0].daysSelected
       : nagaraVaradiRangeDays().count || 0;
-  const showHierFilters = filter !== 'yes';
+  const attendanceDate = nagaraListContext.attendanceDate || '';
+  const showHierFilters = Boolean(attendanceDate) || filter !== 'yes';
   const filtersHtml = showHierFilters
     ? hierLevelFiltersHtml(
         filterProgramSplitShakhes(programSplitScopeFilter(allShakhes, path), filter),
@@ -5041,7 +5132,12 @@ function paintShakheStatusSplitBody() {
     : '';
   let summary;
   let tableHtml;
-  if (filter === 'yes') {
+  if (attendanceDate) {
+    summary = `<div class="list-summary"><div class="list-summary-item">` +
+      `${stackedLabel('ನಡೆದ ಶಾಖೆಗಳು/Nadeda Shakhegalu')} <strong>${filtered.length}</strong></div>` +
+      `<div class="list-summary-item">${stackedLabel('ಉಪಸ್ಥಿತಿ/Upasthiti')} — ${escapeHtml(formatDateDisplay(attendanceDate))}</div></div>`;
+    tableHtml = paintDailyShakheListTable(filtered);
+  } else if (filter === 'yes') {
     // Nadayuthiruva: hierarchy (grouped) + upasthiti metrics columns.
     summary =
       `<div class="list-summary program-split-summary">` +
@@ -5105,6 +5201,8 @@ async function openShakheStatusSplit(opts) {
   const entityLevel = opts && opts.entityLevel;
   if (!entityId || !entityLevel) return;
   const entityName = (opts && opts.entityName) || '';
+  const attendanceDate = (opts && opts.attendanceDate) || '';
+  if (attendanceDate && !/^\d{4}-\d{2}-\d{2}$/.test(attendanceDate)) return;
   const keepFilter =
     opts && opts.itemFilter
       ? opts.itemFilter
@@ -5119,13 +5217,14 @@ async function openShakheStatusSplit(opts) {
   if (opts && opts.upavasatiId) statusHierFilters.upavasatiId = String(opts.upavasatiId);
   nagaraListContext = {
     mode: 'shakhe-status-split',
+    attendanceDate,
     entityLevel,
     entityId,
     entityName,
     vasatiId: (opts && opts.vasatiId) || null,
     upavasatiId: (opts && opts.upavasatiId) || null,
     titleName: entityName,
-    itemFilter: keepFilter === 'yojita' ? 'all' : keepFilter,
+    itemFilter: attendanceDate ? 'yes' : keepFilter === 'yojita' ? 'all' : keepFilter,
     splitPath: [],
     hierFilters: statusHierFilters,
     splitShakhes: [],
@@ -5142,11 +5241,15 @@ async function openShakheStatusSplit(opts) {
       : keepFilter === 'yes'
         ? 'ನಡೆಯುತ್ತಿರುವ ಶಾಖೆಗಳು/Nadayuthiruva Shakhegalu'
         : 'ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe';
-  document.getElementById('nagara-list-title').textContent = `${titlePrefix} — ${entityName}`;
+  document.getElementById('nagara-list-title').textContent = attendanceDate
+    ? `${formatDateDisplay(attendanceDate)} ನಡೆದ ಶಾಖೆಗಳು/Nadeda Shakhegalu — ${entityName}`
+    : `${titlePrefix} — ${entityName}`;
   showScreen(nagaraListView);
   setNagaraListLoading(true);
   try {
-    const range = nagaraVaradiRangeDays();
+    const range = attendanceDate
+      ? { from: attendanceDate, to: attendanceDate, excludeSunday: false }
+      : nagaraVaradiRangeDays();
     const params = new URLSearchParams({
       level: entityLevel,
       entityId,
