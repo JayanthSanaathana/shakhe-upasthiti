@@ -2110,9 +2110,11 @@ h1.report-title {
 
 .shakhe-list-table td.cell-person {
   min-width: 9rem;
+  vertical-align: top;
 }
 
-.shakhe-list-table td.cell-timing .cell-sub {
+.shakhe-list-table td.cell-timing .cell-sub,
+.shakhe-list-table td.cell-person .cell-sub {
   display: block;
   margin-top: 0.15rem;
   color: var(--muted);
