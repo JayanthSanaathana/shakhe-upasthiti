@@ -14,9 +14,20 @@ This document intentionally contains no passwords, MongoDB URIs, Tailscale keys,
 
 ## Open issues (read first)
 
+### Investigation update (2026-09-21)
+
+Live SSH-tunnel queries confirm 8 MHD children; the app cache has 17. Railway aws-egress is configured `live`; production has `ENTITY_REFERENCE_SOURCE` unset (defaults to cache). Both old and patched report code return 8 against live data. The historic 32-row result has not been reproduced there.
+
+Working-tree fixes add scope-preserving downward report paths, ID-rooted Jalahalli overlay membership from reference links, first-read overlay initialization, and label-only cache preservation (version 2). `npm test` covers stale Shakhe parents, duplicate names, multi-parent paths, first-read labels, and cache refresh. Deployment status is recorded below when verified.
+
+- **Production:** user approved `ENTITY_REFERENCE_SOURCE=live`; config redeploy `d7f2824c-eeef-4f60-87ae-766c0f31e0b9` succeeded. Startup logs confirm kdpEntities via SSH SOCKS; HTTP 200. Production still runs application commit `995213a` (new code was not uploaded there).
+- **aws-egress:** working-tree code deployed successfully as `75169ab6-8229-45d2-acd3-a2d367a35ded`; startup logs confirm live connection and HTTP 200. This deployment preceded the GitHub push of the fixes and Patti spelling correction.
+- Read-only report-function checks against live data returned exactly MHD82–MHD88 and MHD96. On 2026-09-21, the user confirmed the production browser view (Kithaganuru → Avalahalli → Total Upavasati) shows only the eight MHD rows.
+- Cache version 2 refresh completed at `2026-09-21T08:37:40.233Z`. A read-only recheck confirms the app cache now also has **8** Avalahalli parent links (previously 17); source data was not modified.
+
 ### Avalahalli @ Kithaganuru — wrong Upavasatis in UI
 
-**Status: OPEN** — still reproduces after switching hierarchy reads to live.
+**Status: RESOLVED — confirmed in the production browser on 2026-09-21.** Historical reproduction was reported after switching aws-egress to live, but production remained on cache until this investigation. After switching production to live reads, the user confirmed only the eight expected MHD rows.
 
 Full write-up:
 
@@ -80,7 +91,7 @@ Service: `shakhe-upasthiti`
 
 Named override `ENTITY_LOCAL_HIERARCHY_OVERRIDE_NAMES=JALAHALLI`:
 
-- **Sync:** preserves Jalahalli subtree in local cache when refreshing from live  
+- **Sync:** preserves only Jalahalli display names by ID; hierarchy links refresh from live
 - **Reads:** must **not** force all hierarchy onto local when `live` is set (fixed in `a615934`)
 
 ### Jalahalli display-name overlay (temporary)

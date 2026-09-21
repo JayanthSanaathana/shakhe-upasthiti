@@ -4,6 +4,7 @@
   "description": "Shakhe attendance — create shakhe and nagara login. Uses the same entity DB as Raksha Bandhan Utsava.",
   "main": "server.js",
   "scripts": {
+    "test": "node --test test/*.test.js",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },

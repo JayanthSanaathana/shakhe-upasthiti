@@ -1,11 +1,28 @@
 # Issue: Wrong Upavasatis under Avalahalli (Kithaganuru)
 
-**Status:** OPEN (still reproducing on aws-egress as of 2026-09-21)  
+**Status:** RESOLVED — user confirmed the production browser shows only the eight expected MHD rows on 2026-09-21. Code fixes are deployed to aws-egress; production uses the corrected live-read configuration.
 **Severity:** High — report / Total Upavasati list shows unrelated school Upavasatis  
 **Related Nagara:** KITHAGANURU  
 **Related Vasati:** AVALAHALLI  
 
 This document explains the data model, the expected ID-only walk, what we observed, and what is still wrong.
+
+## Verified investigation — 2026-09-21
+
+- Read-only queries through the AWS tunnel confirm **live kdpEntities has 8 MHD children**; the app cache still has **17** children (8 MHD + 9 school rows).
+- Railway **aws-egress** has `ENTITY_REFERENCE_SOURCE=live` and logs a successful live connection. **Production has the setting unset**, so it defaults to the polluted cache.
+- Executing both the previous report implementation and the patched implementation against the live data returns **8** rows for Avalahalli. The historical count of 32 has not been reproduced against the current live source.
+- Code inspection found additional risks: report placement trusted saved Shakhe parents, unscoped ancestor walks could mix multi-parent paths, and the overlay derived membership from cached links. Regression tests reproduce these risks with controlled fixtures.
+- The patch carries reference parent paths down through each hierarchy level for all three Upavasati filters. The Jalahalli overlay uses Nagar ID `668cfe4f529dc546a1f211bc` and reference links, with local labels for matching IDs only. It is loaded at startup / awaited on first read, not activated by clicking the Nagar.
+- Named cache overrides now preserve labels only, not stale parent edges or stale entity levels. Cache version 2 requests a refresh after deployment. Tests: `npm test`.
+
+The historical diagnosis below is retained for context. Deployment verification must distinguish the production and aws-egress URLs.
+
+### Deployment outcome
+
+With user approval, production was switched to `ENTITY_REFERENCE_SOURCE=live`. Deployment `d7f2824c-eeef-4f60-87ae-766c0f31e0b9` succeeded and logs confirm the live connection. Code changes were uploaded to aws-egress only, deployment `75169ab6-8229-45d2-acd3-a2d367a35ded` (successful). Both URLs respond HTTP 200. Four regression tests pass. On 2026-09-21, the user refreshed production and confirmed Kithaganuru → Avalahalli → Total Upavasati shows only the eight MHD rows, satisfying the displayed count and names acceptance criteria.
+
+The version 2 cache refresh completed at `2026-09-21T08:37:40.233Z`; a subsequent read-only query confirms **8** cached Avalahalli links as well. The nine extraneous cached school links were replaced by the source hierarchy. Master kdpEntities was never modified.
 
 ---
 

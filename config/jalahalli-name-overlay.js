@@ -9,6 +9,6 @@
  */
 module.exports = {
   enabled: true,
-  /** Match Nagara name in local entities (case-insensitive exact). */
-  nagarName: 'JALAHALLI',
+  /** Fixed identity from kdpEntities; names must never select the subtree. */
+  nagarId: '668cfe4f529dc546a1f211bc',
 };

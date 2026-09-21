@@ -58,7 +58,7 @@ If the developer entity database is missing corrected Upavasati names for one Na
 ENTITY_LOCAL_HIERARCHY_OVERRIDE_NAMES=JALAHALLI
 ```
 
-During the daily sync, the local `entities` and `parententities` records for that Nagar and all of its descendants (including Upavasatis) are preserved. All other Nagars and all `ssdatas`/`sanghdatas` records continue to sync from the developer database. Leave the variable empty after the developer data is corrected so the next sync refreshes Jalahalli too. The legacy `ENTITY_LOCAL_HIERARCHY_OVERRIDE=true` preserves the entire hierarchy and should only be used when that is intentional.
+During sync, only local display names for that Nagar and its live descendants are preserved, matched by entity ID. Parent links and other entity fields always refresh from the source. Jalahalli membership is anchored to the fixed Nagar ID in `config/jalahalli-name-overlay.js`; cached links cannot expand its scope. The display overlay loads at startup and is awaited on the first hierarchy request, so clicking Jalahalli is not required. Leave the variable empty after the source labels are corrected, and disable the display overlay in its config. The legacy `ENTITY_LOCAL_HIERARCHY_OVERRIDE=true` preserves the entire cached hierarchy; an explicit `ENTITY_REFERENCE_SOURCE=live` still takes precedence for reads.
 
 `ssdatas` and `sanghdatas` use `ENTITY_MONGO_URI` by default because person and responsibility data can change. If the live connection is unavailable, all seven collections fall back to their persistent copies in `MONGO_URI`.
 
