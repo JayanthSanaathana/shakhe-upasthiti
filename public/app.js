@@ -3910,13 +3910,13 @@ function paintNagaraShakheVaradi(data) {
     `aria-label="${dailyOpen ? 'Hide' : 'Show'} Shakha Saptaha">${dailyOpen ? '−' : '+'}</button> ` +
     `${dailyOpen ? `${stackedLabel('ಶಾಖಾ ಸಪ್ತಾಹ/Shakha Saptaha')}<br><small>21–27 Sep 2026</small>` : ''}</th>`;
   const dailySubHeads = dailyOpen
-    ? `<th class="num">${stackedLabel('21–27 ಒಂದು ದಿನ ನಡೆದ ಶಾಖೆಗಳು/21–27 Ondu Dina Nadeda')}</th>` +
+    ? `<th class="num">${stackedLabel('21–27 ಒಂದು ದಿನ ನಡೆದ ಶಾಖೆಗಳು')}</th>` +
       dailyDates.map((date) =>
         `<th class="num" title="${escapeHtml(formatDateDisplay(date))}">${stackedLabel(
           `${Number(date.slice(8))} ನಡೆದ ಶಾಖೆಗಳು/${Number(date.slice(8))} Nadeda Shakhegalu`
         )}</th>`
       ).join('') +
-      `<th class="num">${stackedLabel('21–27 ನಡೆಯದ ಶಾಖೆಗಳು/21–27 Nadayada Shakhegalu')}</th>`
+      `<th class="num">${stackedLabel('21–27 ನಡೆಯದ ಶಾಖೆಗಳು')}</th>`
     : '';
   const dailyCells = (rowOrCounts, opts) => {
     if (!showDailySlot) return '';
@@ -5264,8 +5264,8 @@ function paintShakheStatusSplitBody() {
     tableHtml = paintDailyShakheListTable(filtered);
   } else if (saptahaMode) {
     const label = saptahaMode === 'noran'
-      ? '21–27 ನಡೆಯದ ಶಾಖೆಗಳು/21–27 Nadayada Shakhegalu'
-      : '21–27 ಒಂದು ದಿನ ನಡೆದ ಶಾಖೆಗಳು/21–27 Ondu Dina Nadeda';
+      ? '21–27 ನಡೆಯದ ಶಾಖೆಗಳು'
+      : '21–27 ಒಂದು ದಿನ ನಡೆದ ಶಾಖೆಗಳು';
     summary =
       `<div class="list-summary program-split-summary">` +
       `<div class="list-summary-item"><span class="list-summary-label">${stackedLabel(
@@ -5388,8 +5388,8 @@ async function openShakheStatusSplit(opts) {
         : 'ಯೋಜಿತ ಶಾಖೆ/Yojita Shakhe';
   document.getElementById('nagara-list-title').textContent = saptahaMode
     ? (saptahaMode === 'noran'
-      ? `21–27 ನಡೆಯದ ಶಾಖೆಗಳು/21–27 Nadayada — ${entityName}`
-      : `21–27 ಒಂದು ದಿನ ನಡೆದ ಶಾಖೆಗಳು/21–27 Ondu Dina Nadeda — ${entityName}`)
+      ? `21–27 ನಡೆಯದ ಶಾಖೆಗಳು — ${entityName}`
+      : `21–27 ಒಂದು ದಿನ ನಡೆದ ಶಾಖೆಗಳು — ${entityName}`)
     : attendanceDate
       ? `${formatDateDisplay(attendanceDate)} ನಡೆದ ಶಾಖೆಗಳು/Nadeda Shakhegalu — ${entityName}`
       : `${titlePrefix} — ${entityName}`;
