@@ -2005,6 +2005,12 @@ h1.report-title {
   margin: 0;
 }
 
+.report-options-row #nagara-hide-blank-columns {
+  margin: 0;
+  white-space: normal;
+  text-align: left;
+}
+
 .report-options-row .field {
   margin: 0;
 }

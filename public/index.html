@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=20260921e">
+  <link rel="stylesheet" href="/styles.css?v=20260921f">
 </head>
 
 <body>
@@ -453,6 +453,9 @@
         <input type="checkbox" id="nagara-exclude-sunday">
         <span>ಭಾನುವಾರದ ಸಾಂಘಿಕ್ ಹೊರತುಪಡಿಸಿ/Exclude Sunday’s Sanghik</span>
       </label>
+      <button type="button" class="secondary" id="nagara-hide-blank-columns" aria-pressed="false">
+        ಖಾಲಿ ಕಾಲಮ್‌ಗಳನ್ನು ಮರೆಮಾಡಿ/Hide blank columns
+      </button>
       <div id="nagara-program-day-filter-wrap" class="field hidden">
         <label id="nagara-program-day-filter-label" for="nagara-program-day-filter">ಎಷ್ಟು ದಿನ ನಡೆದಿದೆ/Number of days happened</label>
         <select id="nagara-program-day-filter"></select>
@@ -715,6 +718,6 @@
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/app.js?v=20260921e"></script>
+  <script src="/app.js?v=20260921f"></script>
 </body>
 </html>
