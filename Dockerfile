@@ -27,6 +27,7 @@ COPY package.json package-lock.json ./
 COPY server.js ./
 COPY lib ./lib
 COPY models ./models
+COPY config ./config
 COPY public ./public
 COPY scripts/docker-entrypoint.sh /app/scripts/docker-entrypoint.sh
 RUN chmod +x /app/scripts/docker-entrypoint.sh \
