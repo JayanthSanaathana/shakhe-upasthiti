@@ -90,6 +90,7 @@ const BOUDHIK_ITEMS = [
 ];
 const SHARIRIK_ITEMS = [
   { id: 'suryanamaskar', kn: 'ಸೂರ್ಯನಮಸ್ಕಾರ', en: 'Suryanamaskar' },
+  { id: 'yogasana', kn: 'ಯೋಗಾಸನ', en: 'Yogasana' },
   { id: 'samata', kn: 'ಸಮತಾ', en: 'Samata' },
   { id: 'sanchalana', kn: 'ಸಂಚಲನ', en: 'Sanchalana' },
   { id: 'danda', kn: 'ದಂಡ', en: 'Danda' },
