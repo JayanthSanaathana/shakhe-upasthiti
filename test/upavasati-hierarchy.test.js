@@ -26,6 +26,8 @@ entity(id(200), 'School elsewhere in Kithaganuru', 'Upavasati', id(20));
 entity(id(201), 'Girinagara school', 'Upavasati', id(31));
 // A legitimate second parent must not replace the selected scope's parent path.
 edges.unshift({ parentEntity: id(31), currentEntity: id(100) });
+// The same Upavasati can also be linked to two Vasatis within one Nagara.
+edges.unshift({ parentEntity: id(20), currentEntity: id(100) });
 entity(jalahalli, 'JALAHALLI', 'Nagar', id(10));
 entity(id(40), 'Jalahalli Vasati', 'Vasati', jalahalli);
 entity(id(41), 'Original Jalahalli name', 'Upavasati', id(40));
@@ -45,7 +47,7 @@ function matches(row, filter) {
   });
 }
 function query(value) {
-  return { select() { return this; }, lean() { return Promise.resolve(value); },
+  return { select() { return this; }, sort() { return this; }, lean() { return Promise.resolve(value); },
     then(resolve, reject) { return Promise.resolve(value).then(resolve, reject); } };
 }
 function model(rows) {
@@ -55,7 +57,13 @@ function model(rows) {
     findById(value) { return query(rows.find((row) => String(row._id) === String(value))); },
   };
 }
-for (const [name, rows] of Object.entries({ Entity: entities, ParentEntity: edges, Sthara: types, Shakhe: shakhes })) {
+for (const [name, rows] of Object.entries({
+  Entity: entities,
+  ParentEntity: edges,
+  Sthara: types,
+  Shakhe: shakhes,
+  ShakheUpasthiti: [],
+})) {
   const filename = require.resolve(`../models/${name}`);
   require.cache[filename] = { id: filename, filename, loaded: true, exports: model(rows) };
 }
@@ -88,7 +96,7 @@ test('scope paths retain the selected parent and keep duplicate place names sepa
   assert.deepEqual(selected.map((row) => row.name).sort(), [...mhdNames].sort());
   assert.ok(selected.every((row) => row.placed.nagar.id === nagar));
   const wider = await hierarchy.upavasatiPathsUnder(id(10));
-  assert.equal(wider.filter((row) => row.id === id(100)).length, 2);
+  assert.equal(wider.filter((row) => row.id === id(100)).length, 3);
 });
 
 test('all report filters use reference parents despite incorrect Shakhe snapshots', async () => {
@@ -102,4 +110,65 @@ test('all report filters use reference parents despite incorrect Shakhe snapshot
     const school = result.upavasatis.find((row) => row.id === id(200));
     if (school) assert.equal(school.vasati.id, id(20));
   }
+});
+
+test('report totals count a multi-parent Upavasati only once per scope', async () => {
+  const result = await report.reportForParentLevel(
+    'bhag',
+    id(10),
+    '2026-09-17',
+    '2026-09-23',
+    false
+  );
+  assert.equal(result.error, undefined);
+  assert.equal(result.rows.reduce((sum, row) => sum + row.upavasatiCount, 0), 12);
+  assert.equal(result.totals.upavasatiCount, 11);
+  assert.equal(result.totals.upavasatiWithShakheCount, 3);
+  assert.equal(result.totals.upavasatiWithoutShakheCount, 8);
+});
+
+test('program and Nagara reports also use unique Upavasati totals', async () => {
+  const args = ['2026-09-17', '2026-09-23', false];
+  const programParent = await report.reportProgramForParentLevel(
+    'bhag', id(10), 'boudhik', ...args
+  );
+  assert.equal(programParent.totals.upavasatiCount, 11);
+  assert.equal(programParent.totals.upavasatiWithShakheCount, 3);
+  assert.equal(programParent.totals.upavasatiWithoutShakheCount, 8);
+
+  const nagaraReport = await report.reportForNagara(nagar, ...args);
+  assert.equal(nagaraReport.rows.reduce((sum, row) => sum + row.upavasatiCount, 0), 10);
+  assert.equal(nagaraReport.totals.upavasatiCount, 9);
+  assert.equal(nagaraReport.totals.upavasatiWithShakheCount, 2);
+  assert.equal(nagaraReport.totals.upavasatiWithoutShakheCount, 7);
+
+  const programNagara = await report.reportProgramForNagara(
+    nagar, 'sharirik', ...args
+  );
+  assert.equal(programNagara.totals.upavasatiCount, 9);
+  assert.equal(programNagara.totals.upavasatiWithShakheCount, 2);
+  assert.equal(programNagara.totals.upavasatiWithoutShakheCount, 7);
+});
+
+test('Excel keeps unique Upavasati totals instead of summing overlapping rows', async () => {
+  const ExcelJS = require('exceljs');
+  const reportExport = require('../lib/reportExport');
+  const exported = await reportExport.exportHierarchy({
+    level: 'bhag',
+    entityId: id(10),
+    format: 'xlsx',
+    kind: 'shakhe',
+    from: '2026-09-17',
+    to: '2026-09-23',
+    excludeSunday: false,
+  });
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(exported.buffer);
+  const sheet = workbook.worksheets.find((candidate) => candidate.name.startsWith('BHA '));
+  assert.ok(sheet);
+  const totalRow = 5;
+  assert.equal(String(sheet.getCell(totalRow, 2).value), '11');
+  assert.equal(String(sheet.getCell(totalRow, 3).value), '3');
+  assert.equal(String(sheet.getCell(totalRow, 4).value), '8');
+  assert.equal(sheet.getCell(totalRow, 5).value.formula, 'SUM(E2:E4)');
 });
